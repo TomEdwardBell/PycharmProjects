@@ -10,7 +10,7 @@ class Options:
         # ^ Window size
         #   Pixels
 
-        self.visual_size = 80
+        self.visual_size = 81
         # ^ Size of the "visuals" that appear
         #   As a percentage of the width and height of each piece
 
