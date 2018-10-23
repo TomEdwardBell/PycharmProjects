@@ -1,0 +1,32 @@
+<CustButton@Button>:
+    font_size: 32
+    color: 0, 0, 0, 1
+    size: 150, 50
+    background_normal: ''
+    background_color: .66, .88, .88, 1
+
+<CoolButton@Button>:
+    font_size: 40
+    color: 0.8, 0, 0, 1
+    size: 100, 100
+    background_color: .85, .50, .50, 1
+
+
+<CustomWidget>:
+    GridLayout:
+        rows: 2
+        cols: 2
+        size: 500, 500
+        spacing: 20
+        CustButton:
+            text: "I"
+            pos: 100, 100
+        CustButton:
+            text: "Despise"
+            pos: 300, 100
+        CoolButton:
+            text: "Computer"
+            pos: 500, 100
+        CoolButton:
+            text: "Science"
+            pos: 700, 100
