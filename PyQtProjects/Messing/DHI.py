@@ -2,62 +2,107 @@ from PyQt5 import QtWidgets, QtTest, QtGui
 import sys
 import random
 
+class Options:
+    def __init__(self):
+        self.window_size = (1920, 960)
+        # ^ Window size
+        #   Pixels
 
-class Coord:
-    def __init__(self, game):
-        self.btn = QtWidgets.QPushButton(game)
+        self.grid_size = (4, 2)
 
-    def setcolor(self, r,g,b):
-        color = '#%02x%02x%02x' % (r, g ,b)
-        self.btn.setStyleSheet("background-color:"+color)
+
+class MainGame:
+    def __init__(self):
+        self.ui = Grid()
+        self.ui.show()
+        self.options = Options()
+
+
+        maxx, maxy = self.options.grid_size
+        for x in range(self.options.grid_size[0]):
+            for y in range(self.options.grid_size[1]):
+                self.ui.board[x, y].set_rgba((255,0,0,1))
+        while True:
+            x, y = random.randint(0,maxx - 1), random.randint(0,maxy - 1)
+            color = list(self.ui.board[x, y].color)
+            change = random.choice([1,-1])
+            c = random.randint(0,2)
+            color[c] = color[c] + change
+            if color[c] > 255:
+                color[c] = 255
+            elif color[c] < 0:
+                color[c] = 0
+            self.ui.board[x, y].set_rgba(tuple(color))
+            QtGui.QGuiApplication.processEvents()
+
+
+
 
 class Grid(QtWidgets.QMainWindow):
     def __init__(self):
         super(Grid, self).__init__()
-        self.initUI()
+        self.options = Options()
+        self.board = {}
+        self.widgets = {}
 
-    def initUI(self):
-        boardx = 800
-        boardy = 800
-        border = 0
-        xcount = 8
-        ycount = 8
-        self.resize(boardx+border*(xcount+1), boardy+border*(ycount+1))
-        board = {}
+        self.window_size = self.options.window_size
+        self.grid_size = self.options.grid_size
 
+        self.margin = (0, 0, 0, 0) # Top margin, Bottom margin, Left Margin, Right Margin
+        self.borders = (0, 0)
+
+        self.init_ui()
+
+    def init_ui(self):
+        boardx , boardy = self.window_size
+        xcount , ycount = self.grid_size
+        borderx, bordery = self.borders
+
+        self.resize(boardx + self.margin[2] + self.margin[3], boardy + self.margin[0] + self.margin[1])
         for x in range(xcount):
             for y in range(ycount):
-                board[x, y] = Coord(self)
-                board[x, y].coordinates = [x,y]
-                xpercoord = (boardx / xcount)
-                ypercoord = (boardy / ycount)
-                xloc = (x*xpercoord + (x+1)*border)
-                yloc = (y*ypercoord + (y+1)*border)
-                board[x, y].btn.move(xloc, yloc)
-                board[x, y].btn.resize(boardx/xcount, boardy/ycount)
-                #board[x, y].btn.setText(str(x) + "," + str(y))
+                self.board[x, y] = Coord(self)
+                self.board[x, y].coordinates = [x, y]
+
+                xloc = x*(boardx / xcount) + self.margin[2] + (borderx / 4)
+                yloc = y*(boardy / ycount) + self.margin[0] + (bordery / 4)
+
+                width = boardx/xcount - borderx/2
+                height = boardy/ycount - bordery/2
+
+                self.board[x, y].move(xloc, yloc)
+                self.board[x, y].resize(width, height)
+
+                self.board[x, y].set_font_size()
+
+
+class Coord(QtWidgets.QLabel):
+    def __init__(self, parent):
+        super(Coord, self).__init__(parent)
+        self.font_size = "10"
+        self.color = ()
 
         self.show()
 
-        count = 0
-        while True:
-            x = random.randint
-            y = 1
-            r = 3
-            g = 23
-            b = 100
+    def set_font_size(self):
+        self.font_size = ((self.height() + self.width())**1.3) * 0.1
+        self.font_size = str(int(self.font_size))
 
-            board[x, y].setcolor(r, g, b)
-            QtGui.QGuiApplication.processEvents()
+    def set_rgba(self, color):
+        self.color = color
+        self.setStyleSheet('''
+        QWidget{
+            background-color:rgba'''+str(color)+''';
+            }
+        ''')
 
+    def set_value(self, tochangeto):
+        self.setText(str(tochangeto))
 
-    def printcoord(self, coord):
-        print(coord.coordinates)
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
-    game = Grid()
-    game.show()
+    game = MainGame()
     app.exec_()
 
 

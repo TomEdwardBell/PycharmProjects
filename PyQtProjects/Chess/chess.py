@@ -10,7 +10,7 @@ class Options:
         # ^ Window size
         #   Pixels
 
-        self.visual_size = 81
+        self.visual_size = 85
         # ^ Size of the "visuals" that appear
         #   As a percentage of the width and height of each piece
 
@@ -30,7 +30,13 @@ class Options:
         }
 
         self.chessboardcolors = ["#a56f3a", "#f9e093"]
+        # ^ Colours of the checkeboard background of the game
+
         self.teamcolors = {"b": "#000000", "w": "#FFFFFF"}
+        # ^ colours of the pieces in the game
+
+        self.pixels_per_second = 400 dsf
+        # ^ Speed at which the pieces in the game move
 
 
 class MainGame:
@@ -62,7 +68,17 @@ class MainGame:
         self.thinga.clicked.connect(self.thinga_click)
         self.thingo.clicked.connect(self.thingo_click)
 
+        self.thingo.setStyleSheet('''QWidget
+        {
+        background-color: rgba(255,0,255, 160);
+        }
+        ''')
 
+        while False:
+            if random.randint(0, 1) == 0:
+                self.thingo_click()
+            else:
+                self.thinga_click()
 
     def thingo_click(self):
         self.testp.goto_smooth(self.thingo.chessboard_pos)
@@ -72,14 +88,13 @@ class MainGame:
         self.testp.goto_smooth(self.thinga.chessboard_pos)
         self.thinga.goto_smooth((random.randint(0, 7), random.randint(0, 7)))
 
-
     def keyPressEvent(self, e):
         if e.key() == QtCore.Qt.Key_F:
             self.testp.goto_smooth(self.thingo.chessboard_pos)
             self.thingo.goto_smooth((random.randint(0, 7), random.randint(0, 7)))
 
 
-class Grid(QtWidgets.QMainWindow):
+class Grid(QtWidgets.QMdiSubWindow):
     def __init__(self):
         super(Grid, self).__init__()
         self.options = Options()
@@ -125,13 +140,16 @@ class Grid(QtWidgets.QMainWindow):
                     self.chessboard[x, y].set_color(color)
 
 
-class Visual(QtWidgets.QPushButton):
+class Visual(QtWidgets.QToolButton):
     def __init__(self, ui):
         super(Visual, self).__init__(ui)
+
         self.ui = ui
         size = 0  # Percentage from 0 to 100, based off percentage of width / height compared to parent
 
         self.chessboard_pos = (0, 0)
+        self.pixel_pos = (0, 0)
+
 
         self.options = Options()
 
@@ -149,46 +167,58 @@ class Visual(QtWidgets.QPushButton):
 
         corner = self.ui.chessboard[coord].pos()
         self.move(corner)
+        self.pixel_pos = (corner.x(), corner.y())
 
         self.do_resize()
 
         mini_border_w = self.ui.chessboard[0, 0].width() * (1 - (self.options.visual_size / 100)) / 2
         mini_border_h = self.ui.chessboard[0, 0].height() * (1 - (self.options.visual_size / 100)) / 2
-        self.move(corner.x() + mini_border_w, corner.y() + mini_border_h)
+        newx = int(corner.x() + mini_border_w)
+        newy = int(corner.y() + mini_border_h)
+        self.move(newx, newy)
 
     def do_resize(self):
         width = self.ui.chessboard[0, 0].width()
-        width = width * (self.options.visual_size / 100)
+        width = int(width * (self.options.visual_size / 100))
 
         height = self.ui.chessboard[0, 0].height()
-        height = height * (self.options.visual_size / 100)
+        height = int(height * (self.options.visual_size / 100))
         self.resize(width, height)
 
     def goto_smooth(self, new_coord):
         self.chessboard_pos = new_coord
 
-        old_pos = (self.pos())
-        old_pos = old_pos.x(), old_pos.y()
+        old_pos = self.pixel_pos
 
         new_pos_corner = self.ui.chessboard[new_coord].pos()
 
         mini_border_w = self.ui.chessboard[0, 0].width() * (1 - (self.options.visual_size / 100)) / 2
         mini_border_h = self.ui.chessboard[0, 0].height() * (1 - (self.options.visual_size / 100)) / 2
 
-        new_pos = (new_pos_corner.x() + mini_border_w, new_pos_corner.y() + mini_border_h)
+        new_pos = new_pos_corner.x() + mini_border_w, new_pos_corner.y() + mini_border_h
+        self.pixel_pos = new_pos
 
-        frames = 20
+        pps = int(self.options.pixels_per_second)
+        # ^ Speed of the visual, in pixels per second
+
         npx, npy = new_pos
         opx, opy = old_pos
-        for i in range(frames):
-            f = (i + 1) / (frames)
-            s = 1 - f
-            frame_pos = (int(s*opx+ f*npx), int(s*opy + f*npy))
-            self.move(frame_pos[0], frame_pos[1])
 
-            time.sleep(0.02)
-            QtGui.QGuiApplication.processEvents()
+        distance = ((npx - opx)**2+(npy - opy)**2) **0.5
 
+        travel_time = int(distance) / pps
+
+        self.frame = QtWidgets.QFrame(self)
+        self.frame.setFrameStyle(QtWidgets.QFrame.Panel | QtWidgets.QFrame.Raised)
+        self.frame.setGeometry(150, 30, 100, 100)
+
+        self.move_anim =  QtCore.QPropertyAnimation(self, b"geometry")
+        self.move_anim.setDuration(int(travel_time*1000))
+        self.move_anim.setStartValue(QtCore.QRect(opx, opy, self.width(), self.height()))
+        self.move_anim.setEndValue(QtCore.QRect(npx, npy, self.width(), self.height()))
+        self.move_anim.start()
+
+        QtGui.QGuiApplication.processEvents()
 
 class Piece(Visual):
     def __init__(self, ui, team, piece_type):
@@ -203,7 +233,7 @@ class Piece(Visual):
 
         self.setStyleSheet(''' QWidget
         {
-        background-color: rgba(0,0 ,0, 0);
+        background-color: rgba(0, 0 ,0, 0);
         color:''' + self.piece_color + ''';
         font-size: 50pt;
         }
@@ -214,7 +244,7 @@ class Piece(Visual):
         self.goto((0, 0))
 
 
-class Coord(QtWidgets.QPushButton):
+class Coord(QtWidgets.QLabel):
     def __init__(self, parent):
         super(Coord, self).__init__(parent)
         self.piece = " "

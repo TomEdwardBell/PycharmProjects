@@ -149,7 +149,7 @@ class Grid(QtWidgets.QMainWindow):
                 self.board[x, y].resize(boardx/xcount, boardy/ycount)
 
 
-class Coord(QtWidgets.QPushButton):
+class Coord(QtWidgets.QToolButton):
     def __init__(self, parent):
         super(Coord, self).__init__(parent)
 

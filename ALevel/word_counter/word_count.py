@@ -1,5 +1,3 @@
-
-
 def word_count(filename):
     text = get_file(filename)
     text = remove_unwanted(text)
@@ -12,6 +10,7 @@ def word_count(filename):
     count = sortdict(count)
 
     printout(count)
+    print(len(count))
 
 
 def get_file(filename):
@@ -22,7 +21,7 @@ def get_file(filename):
 
 def remove_unwanted(text):
     newtext = ""
-    good_chars = list("abcdefghijklmnopqrstuvwxyz-' ")
+    good_chars = list("abcdefghijklmnopqrstuvwxyz' ")
     text = text.lower()
     for char in text:
         if char in good_chars:
@@ -68,7 +67,6 @@ def sortdict(dic):
         for word in dic:
             if dic[word] == count:
                 newdic[word] = count
-
 
     return newdic
 

@@ -6,7 +6,7 @@ import time
 
 class Options:
     def __init__(self):
-        self.grid_size = (25, 25)
+        self.grid_size = (20, 20)
         # ^ Grid size
         #   (Width, Height)
 
@@ -14,7 +14,7 @@ class Options:
         # ^ Window size
         #   Pixels
 
-        self.mine_count = 500
+        self.mine_count = 60
         # ^ Number of mines on the board
 
 
