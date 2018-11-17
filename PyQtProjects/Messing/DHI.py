@@ -8,7 +8,7 @@ class Options:
         # ^ Window size
         #   Pixels
 
-        self.grid_size = (4, 2)
+        self.grid_size = (2, 1)
 
 
 class MainGame:

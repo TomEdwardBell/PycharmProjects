@@ -29,15 +29,18 @@ class Stack():
             return False
 
     def isFull(self):
-        print(self.head, self.max_size)
         if self.head == self.max_size:
             return True
         else:
             return False
 
-p = Stack(3)
+    def display(self):
+        for item in range(self.max_size):
+            print(str(item).zfill(2),": ",self.stack[item], sep="")
+
+p = Stack(60)
 while True:
-    print("Stack: " + str(p.stack))
+    p.display()
     pushorpop = input("push or pop: ")
     if pushorpop == "push":
         p.push(input("What would you like to push: "))

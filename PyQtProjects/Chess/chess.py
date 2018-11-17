@@ -32,10 +32,10 @@ class Options:
         self.chessboardcolors = ["#a56f3a", "#f9e093"]
         # ^ Colours of the checkeboard background of the game
 
-        self.teamcolors = {"b": "#000000", "w": "#FFFFFF"}
+        self.teamcolors = ["#FFFFFF", "#00000"]
         # ^ colours of the pieces in the game
 
-        self.pixels_per_second = 400 dsf
+        self.pixels_per_second = 100
         # ^ Speed at which the pieces in the game move
 
 
@@ -54,44 +54,34 @@ class MainGame:
         # ^^^ keyPressEvent mussed be defined in the UI
         # ^^^ So I defined it here and then just added it to the UI
 
-        self.thingo = Visual(self.ui)
-        self.thingo.show()
-        self.thingo.goto((4,4))
+        self.pieces = [[],[]]
 
-        self.thinga = Visual(self.ui)
-        self.thinga.show()
-        self.thinga.goto((3,3))
-
-        self.testp = Piece(self.ui, "b", "queen")
-        self.testp.goto((2,2))
-
-        self.thinga.clicked.connect(self.thinga_click)
-        self.thingo.clicked.connect(self.thingo_click)
-
-        self.thingo.setStyleSheet('''QWidget
-        {
-        background-color: rgba(255,0,255, 160);
-        }
-        ''')
-
-        while False:
-            if random.randint(0, 1) == 0:
-                self.thingo_click()
-            else:
-                self.thinga_click()
-
-    def thingo_click(self):
-        self.testp.goto_smooth(self.thingo.chessboard_pos)
-        self.thingo.goto_smooth((random.randint(0, 7), random.randint(0, 7)))
-
-    def thinga_click(self):
-        self.testp.goto_smooth(self.thinga.chessboard_pos)
-        self.thinga.goto_smooth((random.randint(0, 7), random.randint(0, 7)))
-
+        self.place_board()
     def keyPressEvent(self, e):
         if e.key() == QtCore.Qt.Key_F:
             self.testp.goto_smooth(self.thingo.chessboard_pos)
             self.thingo.goto_smooth((random.randint(0, 7), random.randint(0, 7)))
+
+    def place_board(self):
+        #  White Pawns
+        for i in range(8):
+            self.pieces[0].append(None)
+            self.pieces[0][i] = Piece(self.ui, 0, "pawn")
+            self.pieces[0][i].show()
+            self.pieces[0][i].goto((i, 1))
+
+
+        #  Other white row
+
+        #  Black Pawns
+        for i in range(8):
+            self.pieces[1].append(Piece(self.ui, 1, "pawn"))
+            self.pieces[1][i].show()
+            self.pieces[1][i].goto((i, 6))
+        #  Other black row
+
+        for piece in self.pieces[0]:
+            piece.set_clickable(True)
 
 
 class Grid(QtWidgets.QMdiSubWindow):
@@ -176,6 +166,7 @@ class Visual(QtWidgets.QToolButton):
         newx = int(corner.x() + mini_border_w)
         newy = int(corner.y() + mini_border_h)
         self.move(newx, newy)
+        self.pixel_pos = (newx, newy)
 
     def do_resize(self):
         width = self.ui.chessboard[0, 0].width()
@@ -184,6 +175,7 @@ class Visual(QtWidgets.QToolButton):
         height = self.ui.chessboard[0, 0].height()
         height = int(height * (self.options.visual_size / 100))
         self.resize(width, height)
+
 
     def goto_smooth(self, new_coord):
         self.chessboard_pos = new_coord
@@ -220,6 +212,7 @@ class Visual(QtWidgets.QToolButton):
 
         QtGui.QGuiApplication.processEvents()
 
+
 class Piece(Visual):
     def __init__(self, ui, team, piece_type):
         super(Piece, self).__init__(ui)
@@ -229,6 +222,7 @@ class Piece(Visual):
         self.piece_char = self.options.pieces[piece_type]
         self.piece_color = self.options.teamcolors[team]
 
+        self.ui = ui
         self.setText(self.piece_char)
 
         self.setStyleSheet(''' QWidget
@@ -237,11 +231,60 @@ class Piece(Visual):
         color:''' + self.piece_color + ''';
         font-size: 50pt;
         }
-
-
         ''')
 
         self.goto((0, 0))
+
+        self.is_movable = False
+        self.is_clickable = False
+        self.piecemovers = []
+
+    def movable(self):
+        self.is_movable = not self.is_movable
+        self.piecemovers.append(PieceMover(self.ui, self, (self.chessboard_pos[0], self.chessboard_pos[1] + 1)))
+
+    def set_clickable(self, bol):
+        print("Clickable:", self.is_clickable)
+        if bol:
+            self.setStyleSheet('''QWidget
+            {
+            background-color: rgba(200, 0 ,200, 0.8);
+            color:''' + self.piece_color + ''';
+            font-size: 50pt;
+            }
+            ''')
+            self.clicked.connect(self.movable)
+        elif not bol:
+            self.setStyleSheet('''   
+                QWidget
+                {
+                background-color: rgba(0, 0, 0, 0);
+                color: ''' + self.piece_color + ''';
+                font-size: 50pt;
+                }
+                ''')
+            self.clicked.disconnect()
+
+    def nothing(self):
+        pass
+
+
+class PieceMover(Visual):
+    def __init__(self, ui, piece, pos):
+        super(PieceMover, self).__init__(ui)
+        self.piece = piece
+        self.clicked.connect(self.move_piece)
+        self.goto(piece.chessboard_pos)
+        self.goto_smooth(pos)
+        self.piece.set_clickable(False)
+
+
+
+    def move_piece(self):
+        self.piece.goto_smooth(self.chessboard_pos)
+        self.setGeometry(0, 0, 1, 1)
+        for mover in self.piece.piecemovers:
+            mover.setGeometry(0, 0, 1, 1)
 
 
 class Coord(QtWidgets.QLabel):

@@ -1,3 +1,1 @@
-import turtle
-
-t =
+print(not 0)
