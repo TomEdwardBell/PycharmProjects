@@ -35,7 +35,7 @@ class Options:
         self.teamcolors = ["#FFFFFF", "#00000"]
         # ^ colours of the pieces in the game
 
-        self.pixels_per_second = 100
+        self.pixels_per_second = 500
         # ^ Speed at which the pieces in the game move
 
 
@@ -57,6 +57,7 @@ class MainGame:
         self.pieces = [[],[]]
 
         self.place_board()
+
     def keyPressEvent(self, e):
         if e.key() == QtCore.Qt.Key_F:
             self.testp.goto_smooth(self.thingo.chessboard_pos)
@@ -239,31 +240,40 @@ class Piece(Visual):
         self.is_clickable = False
         self.piecemovers = []
 
-    def movable(self):
-        self.is_movable = not self.is_movable
-        self.piecemovers.append(PieceMover(self.ui, self, (self.chessboard_pos[0], self.chessboard_pos[1] + 1)))
+    def place_movers(self):
+        if self.is_clickable:
+            self.piecemovers.append(PieceMover(self.ui, self, (self.chessboard_pos[0], self.chessboard_pos[1] + 1)))
+            self.piecemovers.append(PieceMover(self.ui, self, (self.chessboard_pos[0], self.chessboard_pos[1] + 2)))
+            self.piecemovers.append(PieceMover(self.ui, self, (self.chessboard_pos[0], self.chessboard_pos[1] + 3)))
+            self.piecemovers.append(PieceMover(self.ui, self, (self.chessboard_pos[0], self.chessboard_pos[1] + 4)))
+            self.piecemovers.append(PieceMover(self.ui, self, (self.chessboard_pos[0], self.chessboard_pos[1] + 5)))
+            self.piecemovers.append(PieceMover(self.ui, self, (self.chessboard_pos[0], self.chessboard_pos[1] + 6)))
+        self.is_movable = True
+
 
     def set_clickable(self, bol):
-        print("Clickable:", self.is_clickable)
-        if bol:
-            self.setStyleSheet('''QWidget
-            {
-            background-color: rgba(200, 0 ,200, 0.8);
-            color:''' + self.piece_color + ''';
-            font-size: 50pt;
-            }
-            ''')
-            self.clicked.connect(self.movable)
-        elif not bol:
-            self.setStyleSheet('''   
-                QWidget
+        if bol != self.is_clickable:
+            if bol:
+                self.setStyleSheet('''QWidget
                 {
-                background-color: rgba(0, 0, 0, 0);
-                color: ''' + self.piece_color + ''';
+                background-color: rgba(200, 0 ,200, 0.8);
+                color:''' + self.piece_color + ''';
                 font-size: 50pt;
                 }
                 ''')
-            self.clicked.disconnect()
+                self.clicked.connect(self.place_movers)
+                self.is_clickable = True
+            elif not bol:
+                self.setStyleSheet('''   
+                    QWidget
+                    {
+                    background-color: rgba(0, 0, 0, 0);
+                    color: ''' + self.piece_color + ''';
+                    font-size: 50pt;
+                    }
+                    ''')
+                self.clicked.disconnect()
+                self.is_clickable = False
 
     def nothing(self):
         pass
@@ -277,8 +287,6 @@ class PieceMover(Visual):
         self.goto(piece.chessboard_pos)
         self.goto_smooth(pos)
         self.piece.set_clickable(False)
-
-
 
     def move_piece(self):
         self.piece.goto_smooth(self.chessboard_pos)

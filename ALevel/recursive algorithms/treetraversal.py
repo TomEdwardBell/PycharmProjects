@@ -34,5 +34,7 @@ tree.left = [1, 3, 5, -1, -1, -1, -1]
 tree.data = ["+", "*", "/", "a", "b", "c", "d"]
 tree.right = [2, 4, 6, -1, -1, -1, -1]
 inorderTraverse(tree, 0)
+print("")
 preorderTraverse(tree, 0)
+print("")
 postorderTraverse(tree, 0)

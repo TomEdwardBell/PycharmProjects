@@ -5,8 +5,8 @@ import random
 
 class Options:
     def __init__(self):
-        self.grid_size = (30, 30)
-        self.window_size = (600, 600)
+        self.grid_size = (8, 8)
+        self.window_size = (1000, 1000)
 
         self.run_speed = "max"
 
@@ -77,6 +77,8 @@ class Simulation:
                 coord.make_dead()
 
     def step(self):
+
+        QtGui.QGuiApplication.processEvents()
         alive_list, dead_list = [], []
 
         for coordcode in self.ui.board:
@@ -95,9 +97,11 @@ class Simulation:
 
 
         for alive in alive_list:
-            alive.make_alive()
+            if not alive.alive:
+                alive.make_alive()
         for dead in dead_list:
-            dead.make_dead()
+            if dead.alive:
+                dead.make_dead()
 
     def get_locals(self, coords):
         localcoords = []
@@ -154,7 +158,7 @@ class Coord(QtWidgets.QToolButton):
         super(Coord, self).__init__(parent)
 
         self.make_dead()
-
+        self.alive = False
         self.clicked.connect(self.switch_state)
 
     def make_dead(self):

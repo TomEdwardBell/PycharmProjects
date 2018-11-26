@@ -4,11 +4,11 @@ import random
 
 class Options:
     def __init__(self):
-        self.letter_size = 50
+        self.letter_size = 60
         #  Average font size
         #  In pt
 
-        self.letter_size_mod = 30
+        self.letter_size_mod = 50
         #  How much the font size can vary
         #  As a percentage of the average size
 
@@ -18,13 +18,11 @@ class Options:
 class SimUi(QtWidgets.QMainWindow):
     def __init__(self):
         super(SimUi, self).__init__()
-
-        print("H")
         self.setStyleSheet('''
             background-color: #FFFFFF;            
         ''')
 
-        self.resize(800,800)
+        self.resize(800, 800)
 
         self.show()
 
@@ -37,8 +35,10 @@ class Simulation:
         self.letters = []
 
     def keyPressEvent(self, e):
-        if e.key() == QtCore.Qt.Key_A:
-            self.add_letter("a")
+        if (64 < e.key() < 91) or (47 < e.key() < 59):
+            self.add_letter(chr(e.key()).upper())
+        else:
+            print(e.key())
 
     def add_letter(self, letter):
         l = Letter(self.ui, letter)
@@ -57,26 +57,33 @@ class Letter(QtWidgets.QLabel):
     def decorate(self):
         self.font_size = self.options.letter_size
 
-        print("JIO")
         self.font_size += int((random.randint(-self.options.letter_size_mod*self.font_size,self.options.letter_size_mod*self.font_size)) / 100)
 
-        print(self.font_size)
 
         self.setStyleSheet('''
-        color: rgba(255,0,0,0.5);
+        color:''' + self.get_bright_color() + ''';
         font-size: '''+str(self.font_size)+'''pt;
+        font-family: Arial Black;
         background-color: rgba(0,0 ,0, 0);
         ''')
 
 
         #self.
-        self.resize(100,100)
-        x = random.randint(0, self.options.window_size[0] - self.width())
-        y = random.randint(0, self.options.window_size[1] - self.height())
+        self.resize(150,150)
+        x = random.randint(0, self.options.window_size[0] - self.width()/2)
+        y = random.randint(0, self.options.window_size[1] - self.height()/2)
 
 
         self.move(x, y)
         self.show()
+
+    def get_bright_color(self):
+        colors = ["0", "255", str(random.randint(0, 255))]
+        random.shuffle(colors)
+
+        toreturn = "rgba(" + colors[0]+","+colors[1]+","+colors[2]+ ",0.4 )"
+        return toreturn
+
 
 
 def main():

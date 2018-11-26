@@ -1,5 +1,5 @@
 current_number = 1
-primes = [2, 3]
+primes = [2]
 
 if False:
     while True:
@@ -13,13 +13,13 @@ if False:
                 isprime = False
         if isprime:
             primes.append(current_number)
-            print(len(primes),":",current_number)#
+            print(len(primes),":",current_number)
 
 current_number = 1
 if True:
     #for current_number in range(3, 10000, 1)\
-    while len(primes) < 20000:
-        current_number += 2
+    while len(primes) < 2000:
+        current_number += 1
         isprime = True
         prime_test = 0
         sqr = int(current_number**0.5)
@@ -27,12 +27,11 @@ if True:
         for prime in primes:
             if prime > sqr:
                 break
-            if not isprime:
-                break
             if current_number % prime == 0:
                 isprime = False
+                break
         if isprime:
             primes.append(current_number)
 
-print (primes)
+print(primes)
 print(len(primes))
