@@ -44,10 +44,12 @@ class HashTable(list):
     def add_item(self, key, data):
         hsh = self.get_hash(key)
         oldhsh = hsh
-        while self[hsh].get_record() != ("-1", "-1"):
+        if self[hsh].get_record() != ("-1", "-1"):
             oldhsh = hsh
-            hsh = (hsh + 1) % self.maxlen
-        self[hsh] = HashRecord(key, data, -1)
+            pointer = self[hsh].pointer()
+
+            print(hsh, "-->", oldhsh)
+        self[hsh] = HashRecord(key, data, key+1)
         self[oldhsh].pointer = hsh
 
     def display(self):
