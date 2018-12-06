@@ -18,7 +18,7 @@ if False:
 current_number = 1
 if True:
     #for current_number in range(3, 10000, 1)\
-    while len(primes) < 2000:
+    while len(primes) < 2000000:
         current_number += 1
         isprime = True
         prime_test = 0
@@ -32,6 +32,7 @@ if True:
                 break
         if isprime:
             primes.append(current_number)
+            print(current_number)
 
 print(primes)
 print(len(primes))

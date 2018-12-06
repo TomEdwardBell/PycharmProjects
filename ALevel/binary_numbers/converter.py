@@ -7,7 +7,7 @@ def denary_to_binary(dec):
         if 2**digits_needed > dec:
             digits_found = True
 
-    headers = [2**i for i in range(digits_needed -1, -1, -1)]
+    headers = [2**i for i in range(digits_needed - 1, -1, -1)]
 
     binstr = ""
     for power in headers:
@@ -21,6 +21,17 @@ def denary_to_binary(dec):
 
 
 def binary_to_denary(binary):
+    binary = binary[::-1]
+    h = 0
+    denary = 0
+    for digit in binary:
+        if digit == '1':
+            denary += 2**h
+        h += 1
+    return denary
+
+
+def binary_to_denarjy(binary):
     max_power = len(str(binary))
     current_heading = 2**max_power
     denary = 0
@@ -112,3 +123,37 @@ def hex_to_denary(hex):
 
 def denary_to_hex(denary):
     return binary_to_hex(denary_to_binary(denary))
+
+
+def floating_to_denary(floating, mantissa_length, exponent_length):
+    if len(floating) != mantissa_length + exponent_length:
+        return False
+    current_heading = 1
+    man = floating[:mantissa_length]
+    exp = floating[mantissa_length:]
+    exp = twoscomplement_to_denary(exp)
+    if man[0] == "0":
+        count = 0
+        power = 1
+        for digit in man:
+            if digit == "1":
+                count += 1/power
+            power *= 2
+        man = count
+        return(man*(2**exp))
+    elif man[0] =="1":
+        count = -1
+        power = 1
+        for digit in man[1:]:
+            power *= 2
+            if digit == "1":
+                count -= 1/power
+        man = count
+        return(man*(2**exp))
+
+
+    else:
+        return False
+
+
+print(floating_to_denary("110011011101", 7, 5))

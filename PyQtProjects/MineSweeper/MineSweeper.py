@@ -6,7 +6,7 @@ import time
 
 class Options:
     def __init__(self):
-        self.grid_size = (20, 20)
+        self.grid_size = (10, 10)
         # ^ Grid size
         #   (Width, Height)
 
@@ -14,7 +14,7 @@ class Options:
         # ^ Window size
         #   Pixels
 
-        self.mine_count = 60
+        self.mine_count = 18
         # ^ Number of mines on the board
 
 
@@ -63,6 +63,7 @@ class MainGame:
         self.ui.widgets.flag_btn.clicked.connect(self.flag_switch)
 
     def clicked(self, coords, realclick):
+        #time.sleep(0.05)
         x, y = coords
         ignore_realclick = False
         QtGui.QGuiApplication.processEvents()
@@ -157,8 +158,7 @@ class MainGame:
                 coord = self.ui.board[coordnum]
                 if coord.hidden_value == "x" and (coord.hidden_value + coord.shown_value) != "x⚑":
                     # ^^^ If you haven't found every bomb and marked it
-                    won = False  # You have
-                    print("Lost--"+ coord.hidden_value + coord.shown_value+"!")
+                    won = False  # You haven't
 
                 if coord.hidden_value + coord.shown_value in ["⚑", " ⚑"]:
                     # ^^^ If you marked a piece that isn't a bomb
@@ -293,13 +293,13 @@ class Coord(QtWidgets.QPushButton):
             style_sheet = default_style_sheet
             been_clicked = False
 
-        elif new_value == 0:  # If it is 0
+        elif new_value == 10:  # If it is 0
             shown_value = ""  # Leave it blank
             hidden_value = hidden_old
             style_sheet = 'background-color: #555555;'
             been_clicked = True  # The button has now been clicked
 
-        elif new_value in [1, 2, 3, 4, 5, 6, 7, 8]:  # If it is a number
+        elif new_value in [0, 1, 2, 3, 4, 5, 6, 7, 8]:  # If it is a number
             shown_value = str(new_value)  # Show the value on the button
             hidden_value = hidden_old
             style_sheet = '''
