@@ -118,7 +118,7 @@ Wisconsin - WI
 Wyoming - WY
 '''
 
-h = HashTable(52)
+h = HashTable(53)
 states = states.splitlines(False)
 newstates = []
 for state in states:
