@@ -187,6 +187,9 @@ class Grid(QtWidgets.QMainWindow):
         self.grid_size = self.options.grid_size
         self.window_size = self.options.window_size
         self.board = {}
+        print(QtWidgets.QStyleFactory.keys())
+        self.setStyle(QtWidgets.QStyleFactory.create('Windows'))
+
 
         class Widgets:
             pass

@@ -1,4 +1,6 @@
 import time
+from tabulate import tabulate
+
 
 class HashRecord:
     def __init__(self, key, dat, adr):
@@ -43,14 +45,17 @@ class HashTable(list):
     
     def add_item(self, key, data):
         hsh = self.get_hash(key)
-        oldhsh = hsh
-        if self[hsh].get_record() != ("-1", "-1"):
+        while self[hsh].get_record() != ("-1", "-1"):
             oldhsh = hsh
-            pointer = self[hsh].pointer()
-
-            print(hsh, "-->", oldhsh)
-        self[hsh] = HashRecord(key, data, key+1)
-        self[oldhsh].pointer = hsh
+            pointer = self[hsh].get_pointer()
+            if pointer == -1:
+                hsh = (hsh + 1) % self.maxlen
+            else:
+                hsh = pointer
+            self[oldhsh].pointer = hsh
+        print(key, " going to ", hsh, )
+        time.sleep(0.01)
+        self[hsh] = HashRecord(key, data, hsh)
 
     def display(self):
         for item in self:
@@ -63,7 +68,6 @@ class HashTable(list):
         else:
             while self[hsh].get_key() != key:
                 print("Current:", hsh, " Key:", self[hsh].get_key(), " Going to:", self[hsh].get_pointer(), " AKA:", self[self[hsh].get_pointer()].get_key(), sep="")
-                time.sleep(0.5)
                 hsh = self[hsh].get_pointer()
             return self[hsh].get_data()
 
@@ -120,7 +124,7 @@ Wisconsin - WI
 Wyoming - WY
 '''
 
-h = HashTable(53)
+h = HashTable(51)
 states = states.splitlines(False)
 newstates = []
 for state in states:
@@ -130,6 +134,7 @@ for state in states:
         h.add_item(newstate[1], newstate[0])
         newstates.append(newstate)
 h.display()
+
 while True:
     pp = input("Initials: ")
     print("State: " + h.give(pp))

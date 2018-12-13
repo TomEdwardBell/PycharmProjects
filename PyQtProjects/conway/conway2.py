@@ -7,8 +7,8 @@ import time
 
 class Options:
     def __init__(self):
-        self.grid_size = (70, 70)
-        self.window_size = (1000, 1000)
+        self.grid_size = (1000, 500)
+        self.window_size = (1000, 500)
 
         self.run_speed = "max"
 
@@ -22,6 +22,9 @@ class Simulation:
         self.ui = Grid()
         self.ui.show()
 
+        self.sizex = self.ui.board[0, 0].width()
+        self.sizey = self.ui.board[0, 0].height()
+
         self.running = True
         self.create_board()
 
@@ -34,10 +37,10 @@ class Simulation:
             for y in range(self.options.grid_size[1]):
                 if random.randint(0, 1) == 0:
                     self.board[x].append(0)
-                    self.ui.board[x, y].setStyleSheet("background-color: #FFFFFF")
+                    self.ui.board[x, y].hide()
                 else:
                     self.board[x].append(1)
-                    self.ui.board[x, y].setStyleSheet("background-color: #000000")
+                    self.ui.board[x, y].show()
 
     def super_run(self):
         while self.running:
@@ -66,11 +69,11 @@ class Simulation:
         for ax, ay in alive_list:
             if self.board[ax][ay] == 0:
                 self.board[ax][ay] = 1
-                self.ui.board[ax, ay].setStyleSheet("background-color: #000000")
+                self.ui.board[ax, ay].show()
         for dx, dy in dead_list:
             if self.board[dx][dy] == 1:
                 self.board[dx][dy] = 0
-                self.ui.board[dx, dy].setStyleSheet("background-color: #FFFFFF")
+                self.ui.board[dx, dy].hide()
 
         QtGui.QGuiApplication.processEvents()
 
@@ -109,7 +112,7 @@ class Grid(QtWidgets.QMainWindow):
         xcount = self.grid_size[0]
         ycount = self.grid_size[1]
 
-        self.setStyleSheet("background-color: #222222")
+        self.setStyleSheet("background-color: #000000")
 
         self.resize((boardx + borderx * (xcount + 1)), (boardy + bordery * (ycount + 1)) + margintop)
         for x in range(xcount):
