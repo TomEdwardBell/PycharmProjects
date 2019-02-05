@@ -1,20 +1,19 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
 from sys import argv
 import random
-import time
 
 
 class Options:
     def __init__(self):
-        self.grid_size = (10, 10)
+        self.grid_size = (15, 15)
         # ^ Grid size
         #   (Width, Height)
 
-        self.window_size = (700, 700)
+        self.window_size = (720, 720)
         # ^ Window size
         #   Pixels
 
-        self.mine_count = 18
+        self.mine_count = 30
         # ^ Number of mines on the board
 
 
@@ -163,14 +162,11 @@ class MainGame:
                 if coord.hidden_value + coord.shown_value in ["⚑", " ⚑"]:
                     # ^^^ If you marked a piece that isn't a bomb
                     won = False  # You lose
-                    print("LOppst")
-
         if won:
             self.mouse_mode = "won"
             for coordnum in self.ui.board:
                 coord = self.ui.board[coordnum]
                 coord.win()
-            print("won")
 
     def game_over(self):
         for x in range(self.options.grid_size[0]):
@@ -187,7 +183,6 @@ class Grid(QtWidgets.QMainWindow):
         self.grid_size = self.options.grid_size
         self.window_size = self.options.window_size
         self.board = {}
-        print(QtWidgets.QStyleFactory.keys())
         self.setStyle(QtWidgets.QStyleFactory.create('Windows'))
 
 

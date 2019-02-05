@@ -67,7 +67,6 @@ class Grid(QtWidgets.QMainWindow):
                 self.board[x, y].set_font_size()
 
 
-
 class Coord(QtWidgets.QPushButton):
     def __init__(self, parent):
         super(Coord, self).__init__(parent)

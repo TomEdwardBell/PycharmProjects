@@ -9,163 +9,334 @@ class Options: # Use this to change the options
         self.window_size = (360, 720)
         # ^ Window Size (pixels)
 
-        self.margin = (5,5,5,200)
+        self.margin = (0,0,0,0)
 
-        self.borders = (-5, -5)
+        self.borders = (0, 0)
 
 
 class MainGame:
     def __init__(self):
-        self.ui = Window()
+        self.options = Options()
 
-        self.ui.init_ui()
-        self.ui.show()
+        self.window = Window(self.options.window_size, self.options.margin)
 
-        self.timer_available = True
-        self.new_shape = True
-        self.shapes = []
+        self.dead_pieces = self.make_dead_pieces()
 
-        self.shapes.append(Shape(4, self.ui))
+        self.current_shape = ()
+        self.window.show()
+        self.new_shape()
 
-        self.main_loop()
+        self.window.keyPressEvent = self.keyPressEvent
+        # ^^^ keyPressEvent mussed be defined in the UI
+        # ^^^ So I defined it here and then just added it to the UI
 
-    def main_loop(self):
-        self.dead = False
-        tick_count = 0
-        while not self.dead:
-            tick_count += 1
-            if self.timer_available:
-                self.timer_available = False
-                tick_speed = 200
-                timer = QtCore.QTimer()
-                timer.timeout.connect(self.main_loop_timer_done)
-                timer.start(tick_speed)
-            QtGui.QGuiApplication.processEvents()
+    def keyPressEvent(self, e):
+        if e.key() == QtCore.Qt.Key_S:
+            self.current_shape.move_down()
+        if e.key() == QtCore.Qt.Key_A:
+            self.current_shape.move_left()
+        if e.key() == QtCore.Qt.Key_D:
+            self.current_shape.move_right()
+        if e.key() == QtCore.Qt.Key_W:
+            self.current_shape.rotate()
 
-    def main_loop_timer_done(self):
-        print("BANG")
-        if self.shapes[-1].moving:
-            self.shapes[-1].move((0,1))
-        else:
-            self.shapes.append(Shape(random.randint(0, 6), self.ui))
+    def make_dead_pieces(self):
+        dead = {}
+        w, h = self.options.grid_size
+        for i in range(w):
+            for j in range(h):
+                dead[i, j] = 0
+        return dead
+
+    def kill_shape(self):
+        self.current_shape.moving = False
+        for piece in self.current_shape:
+            x, y = piece.board_pos
+            self.dead_pieces[x, y] = piece
+        del self.current_shape
+
+        self.new_shape()
 
     def new_shape(self):
-        self.shapes.append(Shape(3,self.ui))
+        self.current_shape = Shape(self.window, self)
 
-    def clicked(self, coords):
-        x, y = coords
-        print("X:{} Y:{}".format(x, y))
+    def check_rows(self):
+        for y in range(self.options.grid_size[1]):
+            full = True
+            for x in range(self.options.grid_size[0]):
+                if self.dead_pieces[x, y] == 0:
+                    full = False
+            if full:
+                for x in range(self.options.grid_size[0]):
+                    self.dead_pieces[x, y].hide()
+                    del self.dead_pieces[x, y]
+                    self.dead_pieces[x, y] = 0
 
-    def game_over(self):
-        print("DEAD")
+                for y2 in range(y, -1, -1):
+                    print(y2)
+                    for x2 in range(self.options.grid_size[0]):
+                        print(x2, y2)
+                        print(self.dead_pieces[x2, y2])
+                        if self.dead_pieces[x2, y2] != 0:
+                            self.dead_pieces[x2, y2].move_down()
+                            self.dead_pieces[x2, y2 + 1] = self.dead_pieces[x2, y2]
+                            self.dead_pieces[x2, y2] = 0
 
 
-class Window(QtWidgets.QMainWindow):
-    def __init__(self):
+class Window(QtWidgets.QMainWindow):  # The actual window of the program
+    def __init__(self, window_size, margin):
         super(Window, self).__init__()
+        self.resize(window_size[0], window_size[1])
+        self.show()
+
+
+
+class GridPiece(QtWidgets.QPushButton):  # One square piece on the board
+    def __init__(self, parent, window):
+        super(GridPiece, self).__init__(window)
         self.options = Options()
-        self.board = {}
-        self.widgets = {}
+        self.color = '#008800'
+        self.board_pos = (5, 3)
+        self.window_pos = (0, 0)
 
-        self.window_size = self.options.window_size
-        self.grid_size = self.options.grid_size
+        r, g, b = parent.color
+        self.setStyleSheet('background-color: rgba({},{} ,{},255);'.format(r, g, b))
+        self.do_resize()
+        self.show()
 
-        self.margin = self.options.margin # Top margin, Bottom margin, Left Margin, Right Margin
-        self.borders = self.options.borders
+    def set_pos(self, x, y):
+        self.board_pos = (x, y)
+        self.do_resize()
 
-    def init_ui(self):
-        boardx , boardy = self.window_size
-        xcount , ycount = self.grid_size
-        borderx, bordery = self.borders
+    def do_resize(self):
+        x, y = self.board_pos
+        if not(x < 0 or y < 0 or x >= self.options.grid_size[0] or y >= self.options.grid_size[1]):
+            boardx , boardy = self.options.window_size
+            xcount , ycount = self.options.grid_size
+            borderx, bordery = self.options.borders
 
-        self.resize(boardx + self.margin[2] + self.margin[3], boardy + self.margin[0] + self.margin[1])
+            xloc = int(x * (boardx / xcount) + self.options.margin[2] + (borderx / 4))
+            yloc = int(y * (boardy / ycount) + self.options.margin[0] + (bordery / 4))
 
+            width = boardx / xcount - borderx / 2
+            height = boardy / ycount - bordery / 2
 
-    def place_coord(self, coord, coord_x, coord_y,):
-        boardx , boardy = self.window_size
-        xcount , ycount = self.grid_size
-        borderx, bordery = self.borders
-
-        xloc = coord_x*(boardx / xcount) + self.margin[2] + (borderx / 4)
-        yloc = coord_y*(boardy / ycount) + self.margin[0] + (bordery / 4)
-        width = boardx/xcount - borderx/2
-        height = boardy/ycount - bordery/2
-        coord.move(xloc, yloc)
-        coord.resize(width, height)
-
-
-class Coord(QtWidgets.QPushButton):
-    def __init__(self, parent):
-        super(Coord, self).__init__(parent)
-        self.font_size = "10"
-
-    def set_font_size(self):
-        self.font_size = ((self.height() + self.width())**1.3) * 0.1
-        self.font_size = str(int(self.font_size))
-
-    def set_hex(self, color):
-        if color == "rand":
-            hexes = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"]
-            color = "#"
-            for q in range(6):
-                color = color + random.choice(hexes)
-        self.setStyleSheet("background-color:" + color)
-
-    def set_rgb(self, color):
-        hex = '#%02x%02x%02x' % (color)
-        self.setStyleSheet("background-color:" + hex)
-
-    def set_value(self, tochangeto):
-        self.setText(str(tochangeto))
+            self.move(xloc, yloc)
+            self.resize(width, height)
 
 
-class Shape:
-    def __init__(self,shapenum,window):
-        self.possible_shapes = self.get_shapes()
-        self.shape_coords = [(0, 0)]
-        self.base_pos = (5, 0)
+    def move_down(self):
+        x, y = self.board_pos
+        y += 1
+        self.set_pos(x, y)
+        self.do_resize()
+
+
+    def move_left(self):
+        x, y = self.board_pos
+        x += -1
+        self.set_pos(x, y)
+        self.do_resize()
+
+
+    def move_right(self):
+        x, y = self.board_pos
+        x += 1
+        self.set_pos(x, y)
+        self.do_resize()
+
+
+class Shape(list):
+    # The shape that's currently falling
+    # Only one of these should exist at a time
+    # When the shape stops moving, all of its pieces are moved to the dead pieces array
+    # It is a list off all of the pieces that are falling
+    def __init__(self, window, parent):
+        super(Shape, self).__init__()
         self.moving = True
-
-        self.shape = []
-        self.shape_num = shapenum
-        self.shape_coords = self.possible_shapes[shapenum]
         self.window = window
+        self.parent = parent
+        self.options = Options()
 
-        self.possible_colors = ["#FF0000","#00FF00","#0000FF","#FFFF00","#00FFFF","#FF00FF"]
-        self.color = random.choice(self.possible_colors)
+        self.color = self.get_color()
 
-        self.create_shape()
+        self.center_loc = (int((self.options.grid_size[0] + 1) / 2), 0)
+        self.rotation = 0
 
-    def create_shape(self):
-        for shape_pos in self.shape_coords:
-            self.shape.append(Coord(self.window))
-            self.window.place_coord(self.shape[-1],shape_pos[0],shape_pos[1])
-            self.shape[-1].set_hex(self.color)
-            self.shape[-1].rel_pos = shape_pos
+        shapes = [
+            [[(0, 0), (0, 1), (0, 2), (1, 2)],
+             [(0, 1), (0, 0), (1, 0), (2, 0)],
+             [(0, 0), (1, 0), (1, 1), (1, 2)],
+             [(0, 1), (1, 1), (2, 1), (2, 0)]],
+            # L Piece
 
-            self.shape[-1].show()
-            print ("done")
+            [[(1, 0), (1, 1), (1, 2), (0, 2)],
+             [(1, 0), (1, 1), (1, 2), (0, 2)],
+             [(1, 0), (1, 1), (1, 2), (0, 2)],
+             [(1, 0), (1, 1), (1, 2), (0, 2)],
+             [(1, 0), (1, 1), (1, 2), (0, 2)],],
+            # Reverse L Piece
 
-    def move(self, direction):
-        dir_x, dir_y = direction
-        self.base_pos = (self.base_pos[0] + dir_x,  self.base_pos[1] + dir_y)
-        for piece in self.shape:
-            new_x = self.base_pos[0] + piece.rel_pos[0]
-            new_y = self.base_pos[1] + piece.rel_pos[1]
-            self.window.place_coord(piece,new_x, new_y)
+            [[(0, 0), (1, 0), (2, 0), (3, 0)],
+             [(0, 0), (0, 1), (0, 2), (0, 3)],
+             [(0, 0), (1, 0), (2, 0), (3, 0)],
+             [(0, 0), (0, 1), (0, 2), (0, 3)]],
+            # Line Piece
 
+            [[(0, 0), (0, 1), (1, 1), (1, 0)],
+             [(0, 0), (0, 1), (1, 1), (1, 0)],
+             [(0, 0), (0, 1), (1, 1), (1, 0)],
+             [(0, 0), (0, 1), (1, 1), (1, 0)]],
+            # Block Piece
 
-    def get_shapes(self):
-        z_shape = [
-            [(-1,-1),(0,-1),(0,0),(1,0)],
-            [(1,-1),(1,0),(0,0),(0,1)],
-            [(-1,0),(0,0),(0,1),(1,1)],
-            [(),(),(),()]
+            [[(0, 0), (1, 0), (1, 1), (2, 1)],
+             [(0, 0), (1, 0), (1, 1), (2, 1)],
+             [(0, 0), (1, 0), (1, 1), (2, 1)],
+             [(0, 0), (1, 0), (1, 1), (2, 1)],],
+            # Z Piece
+
+            [[(0, 1), (1, 1), (1, 0), (2, 0)],
+             [(0, 1), (1, 1), (1, 0), (2, 0)],
+             [(0, 1), (1, 1), (1, 0), (2, 0)],
+             [(0, 1), (1, 1), (1, 0), (2, 0)]],
+             # S Piece
+
+            [[(0, 0), (1, 0), (1, 1), (2, 0)],
+             [(0, 0), (1, 0), (1, 1), (0, 2)],
+             [(0, 1), (1, 1), (1, 0), (1, 2)],
+             [(1, 0), (1, 1), (0, 1), (1, 2)]]
+            # T Piece
+            ]
+
+        shlapes = [[[(0,0), (1,0), (2, 0), (3, 0), (4, 0)], [(0,0)],[(0,0)],[(0,0)]]]
+
+        shapjes = [
+            [  # L Piece
+                [],  # . L   L piece no rotation
+                [],  # |▔▔ L piece rotate clockwise 90*
+                [],  # . ┓   L piece rotate 180*
+                []],  # |▁▁ L piece rotate clockwise 270*
+
+            [  # Reverse L Piece
+                [],  # L     Reserve L piece no rotation
+                [],  # |▔▔ Reserve L piece rotate clockwise 90*
+                [],  # ┓     Reserve L piece rotate 180*
+                []],  # |▁▁ Reserve L piece rotate clockwise 270*
+
+            [  # Block Piece
+                [(0, 0), (0, 1), (1, 0), (1, 1)],  # ▉ no rotation
+                [(0, 0), (0, 1), (1, 0), (1, 1)],  # ▉ no rotation
+                [(0, 0), (0, 1), (1, 0), (1, 1)],  # ▉ no rotation
+                [(0, 0), (0, 1), (1, 0), (1, 1)]], # ▉ no rotation
+
+            [  # T Piece
+                [(-1, 0), (0, 0), (0, 1), (1, 0)],  # T
+                [(0, -1), (0, 0), (0, 1), (1, 0)],  # |-
+                [(0, 0)],  # -|
+                [0]]  # _|_
         ]
 
-        all_shapes = [z_shape]
 
-        return(all_shapes)
+        self.shape_info = shapes[random.randint(0, len(shapes) -1)]
+        c = 0
+        for x, y in self.shape_info[self.rotation]:
+            self.append(GridPiece(self, self.window))
+            self[c].set_pos(self.center_loc[0] + x, self.center_loc[1] + y)
+            c += 1
+
+    def rotate(self):
+
+        can_rotate = True
+        cx, cy = self.center_loc
+        for x, y in self.shape_info[self.rotation]:
+            if (cx + x, cy + y) in self.parent.dead_pieces:
+                if self.parent.dead_pieces[cx + x, cy + y] != 0:
+                    can_rotate = False
+            else: can_rotate = False
+
+        if can_rotate:
+            self.rotation = (self.rotation + 1) % 4
+            for p in range(len(self)):
+                self[0].hide()
+                o = self[0]
+                print(p,"O1")
+                self.pop(0)
+                print(p,"O2")
+                del o
+                print(p,"O3")
+            c = 0
+            print(self)
+            for lx, ly in self.shape_info[self.rotation]:
+                print("C1")
+                x, y = cx + lx, cy + ly
+                self.append(GridPiece(self, self.window))
+                print("C2")
+                self[c].set_pos(x, y)
+                c += 1
+
+    def get_color(self):
+        rgb = [255, 0, random.randint(0, 255)]
+        random.shuffle(rgb)
+
+        return rgb[0], rgb[1], rgb[2]
+
+
+    def die(self):
+        for piece in self:
+            self.parent.dead_pieces[piece.board_pos] = piece
+        self.parent.new_shape()
+        self.parent.check_rows()
+
+    def move_down(self):
+        if self.moving:
+            for piece in self:
+                x, y = piece.board_pos
+                if y >= self.options.grid_size[1] - 1:
+                    self.moving = False
+                elif self.parent.dead_pieces[x, y + 1] != 0:
+                    self.moving = False
+            if self.moving:
+                for piece in self:
+                    piece.move_down()
+                    cx, cy = self.center_loc
+                self.center_loc = cx, cy + 1
+            else:
+                self.die()
+
+    def move_left(self):
+        if self.moving:
+            can_move = True
+            for piece in self:
+                x, y = piece.board_pos
+                if x <= 0:
+                    can_move = False
+                elif self.parent.dead_pieces[x - 1, y] != 0:
+                    can_move = False
+
+            if can_move and self.moving:
+                for piece in self:
+                    piece.move_left()
+
+                cx, cy = self.center_loc
+                self.center_loc = cx -1, cy
+
+
+    def move_right(self):
+        if self.moving:
+            can_move = True
+            for piece in self:
+                x, y = piece.board_pos
+                if x >= self.options.grid_size[0] - 1:
+                    can_move = False
+                elif self.parent.dead_pieces[x + 1, y] != 0:
+                    can_move = False
+            if can_move and self.moving:
+                for piece in self:
+                    piece.move_right()
+                cx, cy = self.center_loc
+                self.center_loc = cx + 1, cy
+
+    def nothing(self): pass
 
 
 def main():

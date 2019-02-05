@@ -154,6 +154,3 @@ def floating_to_denary(floating, mantissa_length, exponent_length):
 
     else:
         return False
-
-
-print(floating_to_denary("110011011101", 7, 5))
