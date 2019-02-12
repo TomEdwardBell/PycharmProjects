@@ -1,38 +1,203 @@
-def det(m):
-    a=len(m)
-    b=len(m[0])
-    if a != b:
-        return False
-    if a == 2:
-        return m[0][0]*m[1][1] - m[0][1]*m[1][0]
+import random
+import time
+
+class Matrix(list):
+    def __init__(self, h, w, fill = []):
+        super(Matrix, self).__init__()
+
+        self.h = h
+        self.w = w
+        self.square = self.h == self.w
+        self.vector = self.w == 1 and self.h != 0
+
+        for y in range(h):
+            self.append([])
+            for x in range(w):
+                self[y].append(0)
+
+        if fill != []:
+            self.set(fill)
+
+    def set_value(self,h, w, value):
+        if 0 <= h <= self.h and 0 <= w <= self.w:
+            self[h][w] = value
+
+    def set(self, l):
+        if type(l[0]) == list:
+            self.set_2d(l)
+        elif type(l[0]) == int:
+            self.set_1d(l)
+
+    def set_2d(self, l):
+        if len(l) == self.h and len(l[0]) == self.w:
+            for row in range(self.h):
+                for col in range(self.w):
+                    self[row][col] = l[row][col]
+        else: return  False
+
+    def set_1d(self, li):
+        if len(li) == self.h * self.w:
+            for i in range(len(li)):
+                y = int(i / self.w)
+                x = i % self.w
+                self[y][x] = li[i]
+        else: return False
+
+    def fill(self, num):
+        for r in range(self.h):
+            for c in range(self.w):
+                self[r][c] = num
+                
+    def det(self):
+        if not self.square:
+            return None
+        if self.w == 2:
+            return self[0][0] * self[1][1] - self[0][1] * self[1][0]
+        else:
+            sign = 1
+            d = 0
+            for i in range(self.w):
+                mini = self.sub_matrix(i , 0)
+                d += self[0][i] * sign * mini.det()
+                sign *= -1
+            return d
+
+    def list_vals(self):
+        l = []
+        for r in self:
+            for i in r:
+                l.append((i))
+        return l
+
+    def is_flat(self):
+        return self.det() == 0
+
+    def area_change(self):
+        return abs(self.det())
+
+    def sub_matrix(self, targeth, targetw):
+        nh, nw = -1, -1
+        mini = Matrix(self.h -1, self.w -1)
+        for h in range(self.h):
+            if h != targeth:
+                nh += 1
+                nw = -1
+                for w in range(self.w):
+                    if not (h == targeth or w == targetw):
+                        nw += 1
+                        mini[nh][nw] = self[h][w]
+        return mini
+
+    def adjunct(self):
+        adj = Matrix(self.w, self.h)
+        for h in range(self.h):
+            for w in range(self.w):
+                adj[w][h] = self[h][w]
+        return adj
+
+    def inverse(self):
+        if not self.square:
+            return False
+        det = self.det()
+        if self.h == 2:
+            if det == 0:
+                return False
+            abcd = self.list_vals()
+            a, b, c, d = abcd[0], abcd[1], abcd[2], abcd[3]
+            return MMult(Matrix(2,2, [d, -1*b, -1*c, a]), 1 / det)
+
+        else:
+            inv = Matrix(self.h, self.w)
+            for h in range(self.h):
+                for w in range(self.w):
+                    plus_or_minus = ((h + w)%2)*-2 +1
+                    inv[h][w] = self.sub_matrix(h,w).det() * plus_or_minus
+
+            inv = MMult(inv.adjunct(), 1 / det)
+            return  inv
+
+    def randomize(self):
+        for h in range(self.h):
+            for w in range(self.w):
+                self[h][w] = random.randint(0, 155)
+
+    def __str__(self):
+        strings = []
+        max_width = 0
+        for x in self:
+            for y in x:
+                if len(str(y)) > max_width:
+                    max_width = len(str(y))
+        if max_width % 2 == 1:
+            max_width +=1
+        max_width = str(max_width)
+        for h in range(self.h):
+            strings.append("")
+            strings[h] += "│ "
+            for j in range(self.w):
+                strings[h] += '{:^'+max_width+'}'
+                strings[h] = strings[h].format(self[h][j])
+                strings[h] += ' '
+            strings[h] = strings[h]
+            strings[h] += '│'
+        top = "╭╴" + " "*(len(strings[0]) - 4) + "╶╮"
+        bottom = "╰╴" + " "*(len(strings[0]) - 4) + "╶╯"
+        strings.insert(0, top)
+        strings.append(bottom)
+
+        string = "\n"
+        for row in strings:
+            string += row
+            string += '\n'
+        return string
+
+
+def MAdd(m1, m2):
+    if (m1.h, m1.w) == (m2.h, m2.w):
+        new = Matrix(m1.h, m2.w)
+        for h in range(m1.h):
+            for w in range(m2.w):
+                v = m1[h][w] + m2[h][w]
+                new.set_value(h,w,v)
     else:
-        sign = 1
-        d = 0
-        for i in range(a):
-            # Ignore 0th row (y!=0)
-            # ignore the 'i' column (x!=1)
-            nx, ny = -1, -1
-            mini = []
-            for y in range(a -1):
-                mini.append([])
-                for x in range(a - 1):
-                    mini[y].append(0)
-            for y in range(a):
-                if y != 0:
-                    ny += 1
-                    nx = -1
-                    for x in range(a):
-                        if not(y == 0 or x == i):
-                            nx += 1
-                            mini[ny][nx] = m[y][x]
-            d  += m[0][i] * sign * det(mini)
-            sign *= -1
-        return d
+        return False
 
-m = [[1,1,3,4,9],
-     [3,4,5,6,8],
-     [5,6,7,8,7],
-     [7,8,9,0,6],
-     [2,2,2,2,1]]
 
-print(det(m))
+def MSub(m1, m2):
+    if (m1.h, m1.w) == (m2.h, m2.w):
+        new = Matrix(m1.h, m2.w)
+        for h in range(m1.h):
+            for w in range(m2.w):
+                v = m1[h][w] - m2[h][w]
+                new.set_value(h,w,v)
+    else:
+        return False
+
+
+def MMult(m1, m2):
+    nums = [int, float]
+    if type(m1) in nums and type(m2) in nums:
+        return m1 * m2
+    elif type(m1) in nums and type(m2) == Matrix:
+        m3 = Matrix(m2.h, m2.w)
+        for h in range(m2.h):
+            for w in range(m2.w):
+                m3.set_value(h, w, m1 * m2[h][w])
+        return m3
+    elif type(m1) == Matrix and type(m2) in nums:
+        return MMult(m2, m1)
+    else:
+        if m1.w == m2.h:
+            mult = Matrix(m1.h, m2.w)
+            for h in range(m1.h):
+                for w in range(m2.w):
+                    current = 0
+                    for i in range(m1.w):
+                        current += m1[h][i] * m2[i][w]
+                    mult[h][w] = current
+            return mult
+        else:
+            return False
+
+
+print(MMult(m2,m1))

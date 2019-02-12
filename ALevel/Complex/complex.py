@@ -76,3 +76,14 @@ def CConj(comp):
     re = comp.re()
     im = comp.im() * -1
     return CNum(re, im)
+
+
+def loci_converter(loc):
+    good_chars = "z()0123456789[]*+-/.i".split()
+    nloc = ""
+    for char in loc:
+        if char in good_chars:
+            nloc += char
+    levels = []
+
+
