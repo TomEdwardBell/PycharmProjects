@@ -41,7 +41,7 @@ class Grid(QtWidgets.QMainWindow):
         self.window_size = self.options.window_size
         self.grid_size = self.options.grid_size
 
-        self.margin = (0, 0, 0, 0) # Top margin, Bottom margin, Left Margin, Right Margin
+        self.margin = (1, 0, 0, 0) # Top margin, Bottom margin, Left Margin, Right Margin
         self.borders = (0, 0)
 
     def init_ui(self):

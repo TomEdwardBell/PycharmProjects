@@ -121,6 +121,12 @@ class Matrix(list):
             for w in range(self.w):
                 self[h][w] = random.randint(0, 155)
 
+    def transform(self, coord_list):
+        new_list = []
+        for coord in coord_list:
+            new_list.append(MMult(self, coord))
+        return new_list
+
     def __str__(self):
         strings = []
         max_width = 0
@@ -128,8 +134,7 @@ class Matrix(list):
             for y in x:
                 if len(str(y)) > max_width:
                     max_width = len(str(y))
-        if max_width % 2 == 1:
-            max_width +=1
+
         max_width = str(max_width)
         for h in range(self.h):
             strings.append("")
@@ -198,6 +203,3 @@ def MMult(m1, m2):
             return mult
         else:
             return False
-
-
-print(MMult(m2,m1))
