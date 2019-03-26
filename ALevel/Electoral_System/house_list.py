@@ -1,4 +1,5 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
+import electocalc_widgets
 from sys import argv
 from matplotlib import  pyplot
 
@@ -15,7 +16,7 @@ class RepList(QtWidgets.QScrollArea):
         super(RepList, self).__init__()
         self.scroller_height = 0
         self.rep_panels = []
-        self.outer_size = (350, 500)
+        self.outer_size = (470, 500)
 
     def init_ui(self):
         #self.setWindowModality(QtCore.Qt.WindowModal)
@@ -60,23 +61,24 @@ class RepView(QtWidgets.QWidget):
     def __init__(self, window = None):
         if window is None:
             super(RepView, self).__init__()
+
         else:
             super(RepView, self).__init__(window)
         self.font = QtGui.QFont()
         self.font.setPointSize(12)
         self.font.setFamily('Bahnschrift Light')
         self.bg_colors = ["#FFFFFF", "#EEEEEE"]
+        self.block_size = (450, 100)
     
     def init_ui(self):
-        self.resize(300, 100)
+        self.resize(self.block_size[0], self.block_size[1])
 
         self.PartyColor = QtWidgets.QLabel(self)
-        self.PartyColor.setGeometry(QtCore.QRect(0, 0, 25, 100))
-        self.PartyColor.setFrameShape(QtWidgets.QFrame.WinPanel)
-        self.PartyColor.setFrameShadow(QtWidgets.QFrame.Raised)
+        self.PartyColor.setGeometry(QtCore.QRect(0, 0, 25, self.block_size[1]))
+        #self.PartyColor.setFrameShape(QtWidgets.QFrame.WinPanel)
+        #self.PartyColor.setFrameShadow(QtWidgets.QFrame.Raised)
 
         self.verticalLayoutWidget = QtWidgets.QWidget(self)
-        self.verticalLayoutWidget.setGeometry(QtCore.QRect(130, 0, 171, 100))
 
         self.verticalLayout = QtWidgets.QVBoxLayout(self.verticalLayoutWidget)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
@@ -91,17 +93,20 @@ class RepView(QtWidgets.QWidget):
         self.verticalLayout.addWidget(self.PartyLabel)
         self.RegionLabel = QtWidgets.QLabel(self.verticalLayoutWidget)
         self.RegionLabel.setFont(self.font)
-
         self.verticalLayout.addWidget(self.RegionLabel)
+
         self.Picture = QtWidgets.QLabel(self)
-        self.Picture.setGeometry(QtCore.QRect(25, 0, 100, 100))
+        self.Picture.setGeometry(QtCore.QRect(25, 0, 100, self.block_size[1]))
         self.Picture.setStyleSheet("background-color: #333333")
 
         self.Line = QtWidgets.QFrame(self)
-        self.Line.setGeometry(QtCore.QRect(0, 99, 300, 1))
+        self.Line.setGeometry(QtCore.QRect(0, 99, self.block_size[0], 1))
         self.Line.setFrameShape(QtWidgets.QFrame.HLine)
 
         self.setStyleSheet("background-color:" + self.bg_colors[0])
+
+
+        self.verticalLayoutWidget.setGeometry(QtCore.QRect(130, 0, self.block_size[0] - self.PartyColor.width() - self.Picture.width(), self.block_size[1]))
 
 
     def setPartyColor(self, color):
@@ -145,13 +150,3 @@ def view_house(house):
     rep_views = [view_rep(region.winner, houseview) for region in house]
     houseview.append(rep_views)
     return houseview
-
-def main():
-    app = QtWidgets.QApplication(argv)
-    game = View()
-    app.exec_()
-
-
-if __name__ == '__main__':
-    main()
-

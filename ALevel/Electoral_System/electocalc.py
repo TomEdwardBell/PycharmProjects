@@ -2,7 +2,7 @@ import random
 import random_name
 from numpy.random import normal
 import matplotlib.pyplot as plt
-import house_visualiser as vis
+import house_list as hls
 from sys import argv
 from PyQt5 import QtWidgets, QtGui, QtCore
 import csv2electocalc
@@ -117,6 +117,32 @@ class House(list):
         for region in self:
             preformat = ("{:"+max_regionname+"} - {:"+max_winnername+"} - {:"+max_partyname+"}")
             print(preformat.format(region.name, region.winner.name, region.winner.party.name))
+
+    def redo_party_colors(self):
+        parties = self.party_list()
+        party_colors = {"Labour": "#DC241F", "Conservative": "#0087DC", "SNP": "#FEF987", "Liberal Democrats": "#FAA61A",
+                        "DUP": "#D46A4C", "Sinn Fein": "#326760", "Green Party":"#6AB023", "Plaid Cymru":"#008142"}
+        for party in parties:
+            if party.name in party_colors:
+                party.color = party_colors[party.name]
+
+
+
+    def party_list(self):  # Returns a list of parties sorted by number of seats
+        p_dict = self.party_seats()
+        p_dict = sorted(p_dict.items(), key=lambda kv: (kv[1]))
+        p_list = [p[0] for p in p_dict]
+        return p_list
+
+
+    def party_seats(self):
+        p = {}
+        for region in self:
+            if region.winner.party in p:
+                p[region.winner.party] += 1
+            else:
+                p[region.winner.party] = 1
+        return p
 
 
 class AV:
@@ -371,13 +397,37 @@ def gen_leanings(factor = 1.0):
     y = normal() * factor
     return x,y
 
+def hsv_to_rgb(h, s, v):
+    i = int(h * 6.)  # XXX assume int() truncates!
+    f = (h * 6.) - i
+    p, q, t = v * (1. - s), v * (1. - s * f), v * (1. - s * (1. - f))
+    i %= 6
+
+    if i == 0: color = (v, t, p)
+    if i == 1: color = (q, v, p)
+    if i == 2: color = (p, v, t)
+    if i == 3: color = (p, q, v)
+    if i == 4: color = (t, p, v)
+    if i == 5: color = (v, p, q)
+
+    r, g, b = color
+    r = str(hex(int(r * 255)))[2:]
+    g = str(hex(int(g * 255)))[2:]
+    b = str(hex(int(b * 255)))[2:]
+    if len(r) == 1: r = "0" + r
+    if len(g) == 1: g = "0" + g
+    if len(b) == 1: b = "0" + b
+    color = "#{}{}{}".format(r, g, b)
+    return color
+
 class Test():
     def __init__(self):
-        self.h = csv2electocalc.load_election('miniGE.csv')
-        self.h.voting_system = FPTP
+        self.h = gen_house(10000, 50, 10)
+        self.h.voting_system = AV
         self.h.run()
-        self.h.print_reps()
-        self.v = vis.view_house(self.h)
+        self.h.results = hls.view_house(self.h)
+
+
 
 
 def main():
