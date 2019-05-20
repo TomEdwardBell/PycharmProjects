@@ -15,9 +15,11 @@ def load_election(filename):
     row_num = 4
     house = e.House(e.FPTP)
     parties = {} # Party name: e.Party() object
+    lines = file.readlines()[1:]
+    cands = len(lines)
 
     count = 0
-    for row in file.readlines()[1:]:
+    for row in lines:
         row = row.split(",")
         region_name = row[2]
         cand_name = row[4] + " " + row[3].capitalize()
@@ -48,10 +50,10 @@ def load_election(filename):
             parties[party_name] = new_party
             new_party.name = party_name
             cand.party = new_party
-        for v in range(votes//1000): # Gets the number of votes for that candidate
+        for v in range(votes// 10): # Gets the number of votes for that candidate
             region.append([cand]) # Add to region
         count += 1
-        #print(round((count/ 3304)*100,1),"%", sep="")
+        print(round(count/ cands *100,1),"%", sep="")
 
 
 

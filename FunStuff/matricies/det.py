@@ -156,6 +156,17 @@ class Matrix(list):
             string += '\n'
         return string
 
+    def __add__(self, other):
+        return MAdd(self, other)
+
+    def __sub__(self, other):
+        return MSub(self, other)
+
+    def __mul__(self, other):
+        return MMult(self, other)
+
+    def __truediv__(self, other):
+        return MDiv(self, other)
 
 def MAdd(m1, m2):
     if (m1.h, m1.w) == (m2.h, m2.w):
@@ -203,3 +214,7 @@ def MMult(m1, m2):
             return mult
         else:
             return False
+
+def MDiv(m1, m2):
+    return MMult(m1, m2.inverse())
+M = Matrix

@@ -2,7 +2,6 @@ from PyQt5 import QtWidgets
 from sys import argv
 import random
 
-
 class Options: # Use this to change the options
     def __init__(self):
         self.grid_size = (10, 10)
@@ -96,7 +95,6 @@ def main():
     app = QtWidgets.QApplication(argv)
     game = MainGame()
     app.exec_()
-
 
 if __name__ == '__main__':
     main()

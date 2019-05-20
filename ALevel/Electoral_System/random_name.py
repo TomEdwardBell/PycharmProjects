@@ -27,7 +27,7 @@ def party():
     name = ""
     for i in range(random.randint(2, 4)):
         name += chr(random.randint(65, 85))
-    if random.randint(0, 1) != 0: name += "P"
+    if random.randint(0, 1): name += "P"
     return name
 
 
@@ -42,7 +42,7 @@ def region():
               "Gains", "Gar", "Grim", "Guil", "Green", "Harr", "Hack", "Halt", "Horn", "Hen", "Hex",  # Gs Hs
               "Ip", "Ken", "Kings", "Lei", "Lew", "Lewes", "Ley", "Lin", "Lut", "Lan",  # Is Js Ks Ls
               "Mal", "Mel", "Man", "Mid", "Mil", "New", "Nun", "Ox", "Orp",  # Ms Ns Os
-              "Pen", "Ply", "Port", "Ports", "Pres", "Put", "Pud", "Read", "Redd", "Roch", "Rug",  # Ps Qs Rs
+              "Pen", "Ply", "Port", "Ports", "Pres", "Put", "Punt", "Pud", "Read", "Redd", "Roch", "Rug",  # Ps Qs Rs
               "Sail", "Scar", "Sur", "Strat", "Tam", "Tat", "Tel", "Thor", "Tun", "Ux", "Ul",  # Ss Ts Us
               "Vaux", "Vex", "Wal", "Wans", "War", "Wat", "Well", "Win"  # Vs Ws Xs Ys Zs
               ]

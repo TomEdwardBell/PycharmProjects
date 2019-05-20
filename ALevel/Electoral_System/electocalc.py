@@ -1,11 +1,6 @@
 import random
 import random_name
-from numpy.random import normal
-import matplotlib.pyplot as plt
-import house_list as hls
-from sys import argv
-from PyQt5 import QtWidgets, QtGui, QtCore
-import csv2electocalc
+
 
 class Region(list):
     def __init__(self):
@@ -13,6 +8,7 @@ class Region(list):
         self.name = random_name.region()
         self.candidates = []
         self.election_results = []
+        self.bias = (0, 0)
         self.winner = None
 
     def population(self):
@@ -21,9 +17,28 @@ class Region(list):
     def __str__(self):
         return self.name
 
+    def setName(self, name):
+        self.name = str(name)
+
+    def setPopulation(self, newpop):
+        if newpop < self.population():
+            [self.pop(0) for i in range(self.population() - newpop)]
+        elif newpop > self.population():
+            increase = newpop - self.population()
+            self.addVoters(increase)
+        elif newpop == self.population():
+            pass
+
+    def addVoters(self, number=1):
+        voters = [Voter(self) for v in range(number)]
+        self += voters
+
+    def population(self):
+        return len(self)
+
 
 class Voter():
-    def __init__(self, region = None):
+    def __init__(self, region=None):
         super(Voter, self).__init__()
         self.candidate_rankings = []
         self.fav_party = []
@@ -34,45 +49,63 @@ class Voter():
             self.leaning = gen_leanings()
             self.leaning = self.leaning[0] + region.bias[0], self.leaning[1] + region.bias[1]
 
-
-    def rank_candidates(self, cands):
-        cand_leanings = [cand.leaning for cand in cands]
-        cand_distances = [self.distance_from(cl) for cl in cand_leanings]
-
-        cd_to_cands = dict(zip(cand_distances, cands))
-        #^^ Generates a list of each candidate and how for away from them they are on each leaning
-
-        sorted_cd = cand_distances.copy()
-        sorted_cd.sort()
-        rankings = []
-        for num in sorted_cd:
-            rankings.append(cd_to_cands[num])
-
-        self.candidate_rankings = rankings
-        #print([c.name for c in rankings])
-        return rankings
-        # Returns the candidates :)
+    def rank(self, objs):  # objs can be parties or candidates
+        distances = {o: self.distance_from(o.leaning) for o in objs}
+        order = []
+        candsleft = objs.copy()
+        while candsleft != []:
+            least = candsleft[0]  # You want to first rank the candidate with the LEAST distance from you
+            for cand in candsleft:
+                if distances[cand] < distances[least]:
+                    least = cand
+            candsleft.remove(least)
+            order.append(least)
+        return order
 
     def distance_from(self, leanings):
-        x = (self.leaning[0] - leanings[0])**2
-        y = (self.leaning[1] - leanings[1])**2
-        dist = (x + y)**0.5
-        return dist
+        x = (self.leaning[0] - leanings[0]) ** 2
+        y = (self.leaning[1] - leanings[1]) ** 2
+        return (x + y) ** 0.5
 
 
 class Party:
-    def __init__(self):
-        self.name = random_name.party()
+    def __init__(self, name=None):
+        if name == None:
+            self.name = random_name.party()
+        else:
+            self.name = name
         self.color = gen_random_color()
+        self.check_color()
+
         self.leaning = gen_leanings()
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
+
+    def gen_list(self, n):
+        list = []
+        for i in range(n):
+            list.append(Candidate(self))
+        return list
+
+    def check_color(self):
+        party_colors = {"Labour": "#DC241F", "Conservative": "#0087DC", "SNP": "#FEF987",
+                        "Liberal Democrats": "#FAA61A",
+                        "DUP": "#D46A4C", "Sinn Fein": "#326760", "Green Party": "#6AB023",
+                        "Plaid Cymru": "#008142"}
+
+        if self.name in party_colors:
+            self.color = party_colors[self.name]
 
 
 class Candidate():
-    def __init__(self, region, party = None):
+    def __init__(self, party=None):
         super(Candidate, self).__init__()
         self.name = random_name.full()
         self.party = party
-        self.region = region
         if party == None:
             party = Party()
             party.name = "Independent"
@@ -81,61 +114,37 @@ class Candidate():
             self.color = gen_random_color()
         else:
             personal_leaning = gen_leanings(0.2)
-            party_leanjing = gen_leanings(0.8)
-            self.leaning = party.leaning[0] + personal_leaning[0], party.leaning[1]+ personal_leaning[1]
+            self.leaning = party.leaning[0] * 0.8 + personal_leaning[0], party.leaning[1] * 0.8 + personal_leaning[1]
             self.color = party.color
 
     def show_repview(self):
         vis.view_rep(self)
 
+    def __str__(self):
+        return self.name
 
-class House(list):
-    def __init__(self, voting_system):
-        super(House, self).__init__() # It is a list of the regions it contains
+    def __repr__(self):
+        return self.name
+
+    def display_info(self):
+        print(self.name + ": " + self.party.name)
+
+
+class Nation(list):
+    def __init__(self):
+        super(Nation, self).__init__()  # It is a list of the regions it contains
         self.name = ""
-
-
-        self.voting_system = voting_system  # This is a class-type, not an object
-        self.repcount = 0
-        self.reps = []
-
-        self.population = 0
-
-    def run(self):
-        if self.voting_system is None:
-            return None
-        else:
-            for region in self:
-                vot = self.voting_system(region)
-                vot.run()
-                self.reps.append(region.winner)
+        self.parties = []
 
     def print_reps(self):
         max_regionname = str(max(len(region.name) for region in self))
         max_winnername = str(max(len(region.winner.name) for region in self))
-        max_partyname  = str(max(len(region.winner.party.name) for region in self))
+        max_partyname = str(max(len(region.winner.party.name) for region in self))
         for region in self:
-            preformat = ("{:"+max_regionname+"} - {:"+max_winnername+"} - {:"+max_partyname+"}")
+            preformat = ("{:" + max_regionname + "} - {:" + max_winnername + "} - {:" + max_partyname + "}")
             print(preformat.format(region.name, region.winner.name, region.winner.party.name))
 
-    def redo_party_colors(self):
-        parties = self.party_list()
-        party_colors = {"Labour": "#DC241F", "Conservative": "#0087DC", "SNP": "#FEF987", "Liberal Democrats": "#FAA61A",
-                        "DUP": "#D46A4C", "Sinn Fein": "#326760", "Green Party":"#6AB023", "Plaid Cymru":"#008142"}
-        for party in parties:
-            if party.name in party_colors:
-                party.color = party_colors[party.name]
-
-
-
-    def party_list(self):  # Returns a list of parties sorted by number of seats
-        p_dict = self.party_seats()
-        p_dict = sorted(p_dict.items(), key=lambda kv: (kv[1]))
-        p_list = [p[0] for p in p_dict]
-        return p_list
-
-
-    def party_seats(self):
+    def party_count(self):  # Returns a dictionary of each party and how many seats they have
         p = {}
         for region in self:
             if region.winner.party in p:
@@ -144,227 +153,196 @@ class House(list):
                 p[region.winner.party] = 1
         return p
 
+    def party_reps(self):  # Returns a dictionary of each party and all there MPs
+        p = {}
+        for region in self:
+            if region.winner.party in p:
+                p[region.winner.party].append(region.winner)
+            else:
+                p[region.winner.party] = [region.winner]
+        return p
 
-class AV:
-    def __init__(self, region): 
-        self.rounds = []
-        self.rounds_voters = []
-        self.region = region
+    def av(self, cands_per_region=1):
+        for region in self:
+            r = RegionElection(region)
+            r.av(region.candidates, cands_per_region)
 
-    def display_round(self, round):
-        self.sort_round(round)
-        dic = self.rounds[round]
-        string = ""
-        for cand in dic:
-            string += ("{}:{}".format(cand,dic[cand])) + "\n"
-        return string
+    def add_regions(self, count, mean_population, population_variance=0):
+        for a in range(count):
+            r = Region()
+            r.bias = random.normalvariate(0, 0.2), random.normalvariate(0, 0.2)
+            r.addVoters(abs(int(random.normalvariate(mean_population, population_variance))))
 
-    def display(self):
-        string = ""
-        string += "Election for: " + self.region.name + "\n"
-        for round in range(len(self.rounds) - 1):
-            string += "-------ROUND {}-------\n".format(round + 1) + self.display_round(round)
-        return  string
-
-    def sort_round(self, round):
-        dic = self.rounds[round]
-        scores = []
-        for name in dic:
-            scores.append(dic[name])
-        scores.sort()
-        scores.reverse()
-        new_dic = {}
-        for score in scores:
-            for name in dic:
-                if dic[name] == score:
-                    new_dic[name] = score
-        self.rounds[round] = new_dic
-
-    def run(self):
-        self.rounds = []
-        prefs = []
-
-        pref_count = [[] for i in range(len(self.region.candidates))]
-        # Each candidate starts with 0 votes
-        # A vote is represented by the candidate's ranking list
-
-        cands = self.region.candidates
-        cand_count = len(cands)
-        round = 0
-
-        # Abstracts votes for into a list of numbers
-        voter_num = -1
-        for voter in self.region:
-            voter_num += 1
-            prefs.append([])
-
-            # For each candidate that they've ranked
-
-            if type(voter) == Voter:
-                for cand in voter.candidate_rankings:
-                    # Add the number that represents that candidate to their pref list is prefs
-                    prefs[voter_num].append(cands.index(cand))
-            elif type(voter) == list: # Accepts voters not being the "voter" object, but instead just being a list of candidates
-                for cand in voter:
-                    # Add the number that represents that candidate to their pref list is prefs
-                    prefs[voter_num].append(cands.index(cand))
+    def add_party(self, party):
+        self.parties.append(party)
 
 
-        removed = [False for i in range(cand_count)]
-        finished_election = [[] for i in range(cand_count)]
-
-        # Round 1 (round 0)
-        # Adds that voters ballot to the "pref_count" list of their first choice candidate
-        for voter in prefs:
-            pref_count[voter[0]].append(voter)
-
-        # Convert info from round into the named vote counts
-        self.rounds.append({})
-        for cand_num in range(cand_count):
-            # For each candidate number
-            self.rounds[0][cands[cand_num]] = len(pref_count[cand_num])
-            # ^^ The number of votes that the voter has in the current round
-            # Is equal to the number of ballots in their part of the pref_count list
-
-        while pref_count != finished_election:
-            # Checks if any candidate has a majority (The it's an insta-win)
-            # Commented out because I want the user to see each round
-            #majority = len(self.region)
-            #for cand_num in range(cand_count):
-            #    if len(pref_count[cand_num]) >= majority:
-            #        self.winner = cands[cand_num]
-            #        return self.winner
-
-            # Find the least popular
-            for cand_num in range(cand_count):
-                if not removed[cand_num]:
-                    least_popular = cand_num
-
-            for cand_num in range(cand_count):
-                if len(pref_count[cand_num]) < len(pref_count[least_popular]) and not removed[cand_num]:
-                    least_popular = cand_num
-
-            # Remove them
-            removed[least_popular] = True
-
-            # Goes through each voter and moves their choice to the next candidate that has not been removed
-            for voter in pref_count[least_popular]:
-                newchoice = -1
-                for choice in voter:
-                    if not removed[choice]:
-                        newchoice = choice
-                        break
-                if newchoice != -1:
-                    pref_count[newchoice].append(voter)
-            pref_count[least_popular] = []
-
-            round += 1
-            # Convert info from round into the named vote counts
-            self.rounds.append({})
-            for cand_num in range(cand_count):
-                # For each candidate number
-                if not removed[cand_num]: # If the candidate isnt removed
-                    self.rounds[round][cands[cand_num]] = len(pref_count[cand_num])
-                    # ^^ The number of votes that the candidate has in the current round
-                    # Is equal to the number of ballots in their part of the pref_count list
-
-        self.region.winner = cands[least_popular]
-
-        round += 1
-        # Move onto the next round
-
-        return self.region.winner
-        # The winner is the last person who is "least popular"
-
-    def show_results(self):
-        prefs = {}
-        for cand in self.region.candidates:
-            prefs[cand] = []
-        for voter in self.region:
-            prefs[voter.rank_candidates(self.region.candidates)[0]].append(voter)
-        for cand in self.region.candidates:
-            cand_color = cand.color
-            vlx = [v.leaning[0] for v in prefs[cand]]
-            vly = [v.leaning[1] for v in prefs[cand]]
-            plt.scatter(vlx, vly, c=cand_color, s=3, alpha=0.4)
-            plt.scatter([cand.leaning[0]], [cand.leaning[1]], c=cand_color, edgecolors='black', s=10)
-        plt.show()
-
-
-class FPTP:
+class RegionElection():
     def __init__(self, region):
         self.region = region
-        self.winner = None
-        self.scores = {}
+        self.rounds = []
 
-    def run(self):
-        for cand in self.region.candidates:
-            self.scores[cand] = 0
+    def divisor(self, partylists, seat_number, divisors):
+        seat_count = len(divisors)  # Number  of seats that will be given to that region
+        seats = []
+
+        # partylists is a dictionary, {party:[list of candidates (in order)]}
+        # Seat number is the number of seats that region will send to the parliament
+
+        # Get each voters preferences of the Parties
+        parties = partylists.keys()
+        ballots = []
+
+        # Make a dict party:[candidate_list]
+
+        partyvotes = self.collect_vote(parties)
+        # {party: number of votes}
+
+        # Make a dict, party:seat_number (by default 0)
+        party_seatswon = {party: 0 for party in parties}
+
+        # WHILE len(seats) < seat_number
+
+        original_party_votes = partyvotes.copy()
+        while len(seats) < seat_number:
+
+            # Find party with most votes
+            most_votes = list(parties)[0]
+            for party in partyvotes:
+                if partyvotes[party] > partyvotes[most_votes]:
+                    most_votes = party
+
+            # Add the parties next candidate to the seats list
+            seats.append(partylists[most_votes][party_seatswon[most_votes]])
+
+            # set that parties votes to (number of original votes for that party)*(divisors[seat_number])
+            partyvotes[most_votes] = int(
+                round(original_party_votes[most_votes] * divisors[party_seatswon[most_votes]], 0))
+            # Increase party:seats dict by 1
+            party_seatswon[most_votes] += 1
+
+        # Return the list of candidates
+        for party in party_seatswon:
+            print(party.name + " : " + str(party_seatswon[party]))
+        return seats
+
+    def dhont(self, party_lists, seat_count):
+        divisors = [1 / (x + 2) for x in range(seat_count)]
+        return self.divisor(party_lists, seat_count, divisors, )
+
+    def webster(self, party_lists, seat_count):
+        divisors = [1 / (2 * x + 3) for x in range(seat_count)]
+        return self.divisor(party_lists, seat_count, divisors)
+
+    def collect_vote(self, cands):
+        # Give a list of candidates / parties
+        # returns a dict of {party: number of votes}
+        votes = {cand: 0 for cand in cands}
         for voter in self.region:
-            if type(voter) == Voter:
-                self.scores[voter.candidate_rankings[0]] += 1
-            elif type(voter) == list:
-                self.scores[voter[0]] += 1
-        highest = self.region.candidates[0]
-        for cand in self.region.candidates:
-            if self.scores[cand] > self.scores[highest]:
+            votes[voter.rank(cands)[0]] += 1
+        return votes
+
+    def av(self, cands, seat_count=1):
+        ballot_count = {}
+        # Dictionary
+        # {[list of candidates in order of preference] : number of people who voted that way}
+
+        for voter in self.region:
+            voter_ranking = tuple(voter.rank(cands))
+            if voter_ranking in ballot_count:
+                ballot_count[voter_ranking] += 1
+            else:
+                ballot_count[voter_ranking] = 1
+
+        running = cands.copy()  # Candidates still in the race
+        eliminated = []
+        votes = {cand: 0 for cand in cands}
+        # {candidate: number of people whose highest ranked non-elimineated canidate is that candidate}
+
+        seats = []
+        while len(running) > seat_count:
+            votes = {cand: 0 for cand in running}  # Resets votes
+
+            # Find top candidate that's running
+            for ballot in ballot_count:
+                current_pref = ballot[0]
+                # The voters current vote is set fot their no.1 choice
+                prefnumber = 0
+                while current_pref not in running:
+                    # Goes through their preferences to find their highest ranked candidate that's still running
+                    prefnumber += 1
+                    current_pref = ballot[prefnumber]
+                votes[current_pref] += ballot_count[ballot]
+                # add the number of times that ballot has been used to the votes for that candidate
+            # Find least popular candidate
+            least = list(votes.keys())[0]
+            for candidate in running:
+                if votes[candidate] < votes[least]:
+                    least = candidate
+
+            # Remove them
+            running.remove(least)
+        seats = running
+        return seats
+
+    def fptp(self, cands):
+        votes = {cand: 0 for cand in cands}
+
+        for voter in self.region:
+            print(voter, cands)
+            fav = voter.rank(cands)[0]
+            votes[fav] += 1
+
+        highest = cands[0]
+        for cand in votes:
+            if votes[cand] > votes[highest]:
                 highest = cand
-        self.region.winner = highest
-        return  self.region.winner
+        return highest
 
-    def display(self):
-        self.sort()
-        string = ""
-        string += "Region Of: " + self.region.name +"\n"
-        string += '---------FPTP---------\n'
-        for cand in self.scores:
-            string += cand.name + ": " + str(self.scores[cand]) + '\n'
-        string += '----------------------\n'
-        string += 'Winner: '+self.winner.name + '\n'
-        return  string
+    def proportional(self, party_lists, seat_count):
+        votes = self.collect_vote([p for p in party_lists])
+        total_votes = 0
+        party_seats = {}
+        # {party: seats they should have}
 
-    def sort(self):
-        dic = self.scores.copy()
-        scores = []
-        for name in dic:
-            scores.append(dic[name])
-        scores.sort()
-        scores.reverse()
-        new_dic = {}
-        for score in scores:
-            for name in dic:
-                if dic[name] == score:
-                    new_dic[name] = score
-        self.scores = new_dic
+        for v in votes:
+            total_votes += votes[v]
+        for p in votes:
+            votes[p] = votes[p] / total_votes
+        quota = 1 / seat_count
+        for p in votes:
+            if p > quota:
+                seats[p] += votes[p] / quota
 
 
-def gen_region(population = 10000, candidate_count = 5):
+def gen_region(population=10000, candidate_count=5):
     region = Region()
     for c in range(candidate_count):
-        region.candidates.append(Candidate(region))
+        region.candidates.append(Candidate())
     region_cands = region.candidates.copy
     for p in range(population):
         v = Voter()
-        v.rank_candidates(region_cands())
+        v.rank(region_cands())
         region.append(v)
 
     return region
 
-def gen_house(population = 400000, region_count = 40, party_count = 5):
-    house = House(None)
+
+def gen_house(population=400000, region_count=40, party_count=5):
+    house = Nation(None)
     parties = []
-    ppr = population // region_count # ppr = Population Per Region
-    party_colors = ["#D10000", "#0000FF", "#FFCF00",  "#00D827",
+    ppr = population // region_count  # ppr = Population Per Region
+    party_colors = ["#D10000", "#0000FF", "#FFCF00", "#00D827",
                     # Red         Blue      Yellow     Green
                     "#FF7D00", "#020049", "#606060", "#00b9f2", "#144C00",
                     # Orange    Navy         Grey     Light Blue   Dark Green
                     "#890034", "#8C5100"
-                    #Dark-Rose  Brown
+                    # Dark-Rose  Brown
                     ]
 
     for i in range(party_count):
         parties.append(Party())
-        if party_colors is not []:
+        if len(party_colors) == 0:
             parties[i].color = party_colors.pop(0)
     for reg_num in range(region_count):
         r = Region()
@@ -377,12 +355,13 @@ def gen_house(population = 400000, region_count = 40, party_count = 5):
 
         for p in range(ppr):
             v = Voter(r)
-            v.rank_candidates(house[reg_num].candidates)
+            v.rank(house[reg_num].candidates)
             v.leaning = v.leaning[0] + r.bias[0], v.leaning[1] + r.bias[1]
             # ^^ Regional biases
 
             house[reg_num].append(v)
     return house
+
 
 def gen_random_color():
     color = "#"
@@ -392,52 +371,24 @@ def gen_random_color():
     color = '#%02x%02x%02x' % (nums[0], nums[1], nums[2])
     return color
 
-def gen_leanings(factor = 1.0):
-    x = normal() * factor
-    y = normal() * factor
-    return x,y
 
-def hsv_to_rgb(h, s, v):
-    i = int(h * 6.)  # XXX assume int() truncates!
-    f = (h * 6.) - i
-    p, q, t = v * (1. - s), v * (1. - s * f), v * (1. - s * (1. - f))
-    i %= 6
+def gen_leanings(factor=1.0):
+    x = random.normalvariate(0, factor)
+    y = random.normalvariate(0, factor)
+    return x, y
 
-    if i == 0: color = (v, t, p)
-    if i == 1: color = (q, v, p)
-    if i == 2: color = (p, v, t)
-    if i == 3: color = (p, q, v)
-    if i == 4: color = (t, p, v)
-    if i == 5: color = (v, p, q)
-
-    r, g, b = color
-    r = str(hex(int(r * 255)))[2:]
-    g = str(hex(int(g * 255)))[2:]
-    b = str(hex(int(b * 255)))[2:]
-    if len(r) == 1: r = "0" + r
-    if len(g) == 1: g = "0" + g
-    if len(b) == 1: b = "0" + b
-    color = "#{}{}{}".format(r, g, b)
-    return color
 
 class Test():
     def __init__(self):
-        self.h = gen_house(10000, 50, 10)
-        self.h.voting_system = AV
-        self.h.run()
-        self.h.results = hls.view_house(self.h)
+        region = gen_region(10)
+        e = RegionElection(region)
+        parties = [Party() for p in range(10)]
+        print(parties)
+        partylists = {p: p.gen_list(10) for p in parties}
+        print((partylists))
+        winners = e.webster(partylists, 10)
+        for winner in winners:
+            print(winner.display_info())
 
 
-
-
-def main():
-    app = QtWidgets.QApplication(argv)
-    t = Test()
-    app.exec_()
-
-
-if __name__ == '__main__':
-    main()
-
-
-
+a = Test()
