@@ -7,7 +7,7 @@ class Region(list):
         super(Region, self).__init__()
         self.name = random_name.region()
         self.candidates = []
-        self.election_results = []
+        self.elections = []
         self.bias = (0, 0)
         self.winner = None
 
@@ -33,6 +33,9 @@ class Region(list):
         voters = [Voter(self) for v in range(number)]
         self += voters
 
+    def addCandidates(self, number = 1):
+        self.candidates += [Candidate() for c in range(number)]
+
     def population(self):
         return len(self)
 
@@ -52,7 +55,7 @@ class Voter():
     def rank(self, objs):  # objs can be parties or candidates
         distances = {o: self.distance_from(o.leaning) for o in objs}
         order = []
-        candsleft = objs.copy()
+        candsleft = list(objs)
         while candsleft != []:
             least = candsleft[0]  # You want to first rank the candidate with the LEAST distance from you
             for cand in candsleft:
@@ -117,9 +120,6 @@ class Candidate():
             self.leaning = party.leaning[0] * 0.8 + personal_leaning[0], party.leaning[1] * 0.8 + personal_leaning[1]
             self.color = party.color
 
-    def show_repview(self):
-        vis.view_rep(self)
-
     def __str__(self):
         return self.name
 
@@ -181,9 +181,14 @@ class RegionElection():
     def __init__(self, region):
         self.region = region
         self.rounds = []
+        self.party_seatcount = {}
+        self.seats = []
+        self.votingsystem = None
 
     def divisor(self, partylists, seat_number, divisors):
-        seat_count = len(divisors)  # Number  of seats that will be given to that region
+        self.rounds = []
+        self.party_seatcount = {}
+        self.seats = []
         seats = []
 
         # partylists is a dictionary, {party:[list of candidates (in order)]}
@@ -205,12 +210,14 @@ class RegionElection():
 
         original_party_votes = partyvotes.copy()
         while len(seats) < seat_number:
-
+            self.rounds.append(partyvotes.copy())
             # Find party with most votes
             most_votes = list(parties)[0]
             for party in partyvotes:
                 if partyvotes[party] > partyvotes[most_votes]:
                     most_votes = party
+
+            self.rounds[-1]["_winner"] = most_votes
 
             # Add the parties next candidate to the seats list
             seats.append(partylists[most_votes][party_seatswon[most_votes]])
@@ -221,16 +228,21 @@ class RegionElection():
             # Increase party:seats dict by 1
             party_seatswon[most_votes] += 1
 
+
         # Return the list of candidates
-        for party in party_seatswon:
-            print(party.name + " : " + str(party_seatswon[party]))
+        # Set attributes
+        self.region.elections.append((self.votingsystem, self.rounds))
+        self.party_seatcount = party_seatswon
+        self.seats = seats
         return seats
 
     def dhont(self, party_lists, seat_count):
+        self.votingsystem = "dhont"
         divisors = [1 / (x + 2) for x in range(seat_count)]
-        return self.divisor(party_lists, seat_count, divisors, )
+        return self.divisor(party_lists, seat_count, divisors)
 
     def webster(self, party_lists, seat_count):
+        self.votingsystem = "webster"
         divisors = [1 / (2 * x + 3) for x in range(seat_count)]
         return self.divisor(party_lists, seat_count, divisors)
 
@@ -243,6 +255,7 @@ class RegionElection():
         return votes
 
     def av(self, cands, seat_count=1):
+        self.votingsystem = "av"
         ballot_count = {}
         # Dictionary
         # {[list of candidates in order of preference] : number of people who voted that way}
@@ -274,6 +287,10 @@ class RegionElection():
                     current_pref = ballot[prefnumber]
                 votes[current_pref] += ballot_count[ballot]
                 # add the number of times that ballot has been used to the votes for that candidate
+
+            # Add results to self.rounds
+            self.rounds.append(votes.copy())
+
             # Find least popular candidate
             least = list(votes.keys())[0]
             for candidate in running:
@@ -282,21 +299,36 @@ class RegionElection():
 
             # Remove them
             running.remove(least)
-        seats = running
+            self.rounds[-1]["_loser"] = least
+            seats = running
+
+
+        self.region.elections.append((self.votingsystem, self.rounds))
         return seats
 
     def fptp(self, cands):
+        self.votingsystem = "fptp"
         votes = {cand: 0 for cand in cands}
-
+        total_votes = 0
         for voter in self.region:
-            print(voter, cands)
             fav = voter.rank(cands)[0]
             votes[fav] += 1
+            total_votes += 1
+
+        self.rounds = [votes.copy()]
+        # Adds voter percentages
+        self.rounds.append({cand: str(round(votes[cand]*100 / total_votes, 3)) + "%" for cand in votes})
+        print(self.rounds[1])
+        print(self.rounds[0])
 
         highest = cands[0]
         for cand in votes:
             if votes[cand] > votes[highest]:
                 highest = cand
+
+        self.rounds[0]["_winner"] = highest
+
+        self.region.elections.append((self.votingsystem, self.rounds))
         return highest
 
     def proportional(self, party_lists, seat_count):
@@ -376,19 +408,3 @@ def gen_leanings(factor=1.0):
     x = random.normalvariate(0, factor)
     y = random.normalvariate(0, factor)
     return x, y
-
-
-class Test():
-    def __init__(self):
-        region = gen_region(10)
-        e = RegionElection(region)
-        parties = [Party() for p in range(10)]
-        print(parties)
-        partylists = {p: p.gen_list(10) for p in parties}
-        print((partylists))
-        winners = e.webster(partylists, 10)
-        for winner in winners:
-            print(winner.display_info())
-
-
-a = Test()

@@ -216,6 +216,9 @@ class RegionViewer(QtWidgets.QWidget):
         self.UpdateButton.setText("Update")
         self.UpdateButton.clicked.connect(self.update_region)
 
+        self.showElectionResultsButton = QtWidgets.QPushButton(self)
+        self.showElectionResultsButton.setText("Show Election Results")
+
     def set_region(self, region):
         # Change the current region
         self.current_region = region
@@ -226,14 +229,210 @@ class RegionViewer(QtWidgets.QWidget):
         self.current_region.setName(self.NameEdit.text())
         self.current_region.setPopulation(self.PopEdit.value())
 
+class ElectionViewer(QtWidgets.QWidget):
+    def __init__(self, ui, election):
+        self.ui = ui
+        self.width = 800
+        self.height = 400
+        self.election_table = ElectionTable(ui, election)
+        self.election_table.table.move(200,0)
+
+
+class ElectionTable:
+    def __init__(self, election, ui = None):
+        self.ui = ui
+        self.vs = election.votingsystem
+        self.width = 600
+        self.height = 400
+
+        self.tables = {
+            "av": self.AV_Table,
+            "fptp": self.FPTP_Table,
+            "dhont": self.Divisor_Table,
+            "webster": self.Divisor_Table
+        }
+
+        self.table = self.tables[self.vs](election, self)
+        if ui is not None:
+            self.table.setParent(ui)
+
+    class AV_Table(QtWidgets.QTableWidget):
+        def __init__(self, election, tableclass):
+            super(ElectionTable.AV_Table, self).__init__()
+            self.election = election
+            self.rounds = election.rounds
+
+            self.candidates = list(self.rounds[0].keys())
+            self.candidates.remove("_loser")
+
+            self.tableClass = tableclass
+
+            self.load()
+
+        def load(self):
+            self.resize(self.tableClass.width, self.tableClass.height)
+            self.setColumnCount(len(self.rounds))
+            self.setRowCount(len(self.candidates))
+
+            self.setSortingEnabled(True)
+
+            for i in range(len(self.rounds)):
+                item = QtWidgets.QTableWidgetItem()
+                item.setText(("Round " + str(i + 1)))
+                self.setHorizontalHeaderItem(i, item)
+
+            for c in range(len(self.candidates)):
+                item = QtWidgets.QTableWidgetItem()
+                item.candidate = self.candidates[c]
+                item.setText(self.candidates[c].name + "\n(" + self.candidates[c].party.name + ")")
+                self.setVerticalHeaderItem(c, item)
+
+            for r in range(len(self.rounds)):
+                round = self.rounds[r]
+                for c in range(len(self.candidates)):
+                    cand = self.candidates[c]
+                    if cand in round:
+                        item = QtWidgets.QTableWidgetItem()
+                        item.setText(str(round[cand]))
+                        self.setItem(c, r, item)
+                        if round['_loser'] == cand:
+                            item.setBackground(QtGui.QColor(255, 180, 180))
+                        elif r == len(self.rounds) - 1 :
+                            item.setBackground(QtGui.QColor(180, 255, 180))
+                    else:
+                        item = QtWidgets.QTableWidgetItem()
+                        item.setText("-")
+                        self.setItem(c, r, item)
+
+
+            self.resizeRowsToContents()
+            self.resizeColumnsToContents()
+            self.show()
+
+
+    class FPTP_Table(QtWidgets.QTableWidget):
+        def __init__(self, election, tableclass):
+            super(ElectionTable.FPTP_Table, self).__init__()
+            self.election = election
+            self.rounds = election.rounds
+
+            self.candidates = list(self.rounds[0].keys())
+            self.candidates.remove("_winner")
+
+            self.tableClass = tableclass
+
+            self.load()
+
+        def load(self):
+            self.resize(self.tableClass.width, self.tableClass.height)
+            self.setColumnCount(2)
+            self.setRowCount(len(self.candidates))
+
+            item = QtWidgets.QTableWidgetItem()
+            item.setText("Votes")
+            self.setHorizontalHeaderItem(0, item)
+
+            item = QtWidgets.QTableWidgetItem()
+            item.setText("%")
+            self.setHorizontalHeaderItem(1, item)
+
+            for c in range(len(self.candidates)):
+                item = QtWidgets.QTableWidgetItem()
+                item.candidate = self.candidates[c]
+                item.setText(self.candidates[c].name + "\n(" + self.candidates[c].party.name + ")")
+                self.setVerticalHeaderItem(c, item)
+
+            round = self.rounds[0]
+            for c in range(len(self.candidates)):
+                cand = self.candidates[c]
+                if cand in round:
+                    votecount = QtWidgets.QTableWidgetItem()
+                    votecount.setText(str(round[cand]))
+                    self.setItem(c, 0, votecount)
+
+                    voteperc = QtWidgets.QTableWidgetItem()
+                    voteperc.setText(self.rounds[1][cand])
+                    self.setItem(c, 1, voteperc)
+                    if round['_winner'] == cand:
+                        votecount.setBackground(QtGui.QColor(180, 255, 180))
+                        voteperc.setBackground(QtGui.QColor(180, 255, 180))
+
+
+            self.resizeRowsToContents()
+            self.resizeColumnsToContents()
+            self.show()
+
+    class Divisor_Table(QtWidgets.QTableWidget):
+        def __init__(self, election, tableclass):
+            super(ElectionTable.Divisor_Table, self).__init__()
+
+            self.election = election
+            self.rounds = election.rounds
+
+            self.parties = list(self.rounds[0].keys())
+            self.parties.remove("_winner")
+
+            self.tableClass = tableclass
+
+            self.load()
+
+        def load(self):
+            self.resize(self.tableClass.width, self.tableClass.height)
+            self.setColumnCount(len(self.rounds) + 1)
+            self.setRowCount(len(self.parties))
+
+            for i in range(len(self.rounds)):
+                item = QtWidgets.QTableWidgetItem()
+                item.setText(("Round " + str(i + 1)))
+                self.setHorizontalHeaderItem(i, item)
+            item = QtWidgets.QTableWidgetItem()
+            item.setText("Total")
+            self.setHorizontalHeaderItem(len(self.rounds), item)
+
+            for p in range(len(self.parties)):
+                item = QtWidgets.QTableWidgetItem()
+                item.party = self.parties[p]
+                item.setText(self.parties[p].name)
+                self.setVerticalHeaderItem(p, item)
+
+            for r in range(len(self.rounds)):
+                round = self.rounds[r]
+                for p in range(len(self.parties)):
+                    party = self.parties[p]
+                    item = QtWidgets.QTableWidgetItem()
+                    item.setText(str(round[party]))
+                    self.setItem(p, r, item)
+                    if round['_winner'] == party:
+                        item.setBackground(QtGui.QColor(180, 255, 180))
+
+            for p in range(len(self.parties)):
+                total = self.election.party_seatcount[self.parties[p]]
+                item = QtWidgets.QTableWidgetItem()
+                item.setText(str(total))
+                self.setItem(p, len(self.rounds), item)
+
+            self.resizeRowsToContents()
+            self.resizeColumnsToContents()
+            self.show()
+
+
+
 class Runn():
     def __init__(self):
-        self.regions = RegionScroller()
-        [self.regions.add(e.gen_region(500, 3)) for i in range(20)]
+        self.r = e.Region()
+        self.r.addVoters(1000)
+        self.r.addCandidates(8)
 
-        self.region_viewer = RegionViewer()
-        self.region_viewer.show()
-        self.regions.RegionViewer = self.region_viewer
+        self.e = e.RegionElection(self.r)
+        print("BING")
+        self.e.av(self.r.candidates, 3)
+        print("BANG")
+        self.table2 = ElectionTable(self.e)
+        print("BONG")
+
+        self.e2 = e.RegionElection(self.r)
+        self.e.fptp(self.r.candidates)
+        self.table = ElectionTable(self.e)
 
 
 def main():
