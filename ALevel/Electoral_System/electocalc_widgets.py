@@ -1,6 +1,6 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from sys import argv
-from matplotlib import  pyplot
+import matplotlib.pyplot as plt
 import electocalc as e
 
 class WidgetList(QtWidgets.QScrollArea):
@@ -65,7 +65,6 @@ class RepView(QtWidgets.QWidget):
     def __init__(self, window = None, rep = None):
         if window is None:
             super(RepView, self).__init__()
-
         else:
             super(RepView, self).__init__(window)
         self.font = QtGui.QFont()
@@ -129,6 +128,7 @@ class RepView(QtWidgets.QWidget):
         pixmap = QtGui.QPixmap(filename)
         self.Picture.setPixmap(pixmap)
 
+
 def view_rep(rep, window = None):
     if window is None:
         repview = RepView()
@@ -148,12 +148,14 @@ def view_rep(rep, window = None):
     repview.show()
     return repview
 
+
 def view_house(house):
     houseview = WidgetList()
     houseview.init_ui()
     rep_views = [view_rep(region.winner, houseview) for region in house]
     houseview.append(rep_views)
     return houseview
+
 
 class RegionScroller(WidgetList):
     # A list of all the regions
@@ -185,6 +187,7 @@ class HouseCreator(QtWidgets.QTableWidget):
     def __init__(self):
         super(HouseCreator, self).__init__()
         self.show()
+
 
 class RegionViewer(QtWidgets.QWidget):
     def __init__(self):
@@ -228,6 +231,7 @@ class RegionViewer(QtWidgets.QWidget):
     def update_region(self):
         self.current_region.setName(self.NameEdit.text())
         self.current_region.setPopulation(self.PopEdit.value())
+
 
 class ElectionViewer(QtWidgets.QWidget):
     def __init__(self, ui, election):
@@ -415,6 +419,20 @@ class ElectionTable:
             self.resizeColumnsToContents()
             self.show()
 
+class VoterGraph():
+    def __init__(self, region):
+        self.fig = plt.figure()
+        self.leanings_x = [voter.leaning[0] for voter in region]
+        self.leanings_y = [voter.leaning[1] for voter in region]
+
+    def show_voters(self):
+        plt.plot(self.leanings_x, self.leanings_y)
+
+    def show_candidates(self):
+        pass
+
+    def show_favourite_parties(self):
+        pass
 
 
 class Runn():
@@ -423,16 +441,8 @@ class Runn():
         self.r.addVoters(1000)
         self.r.addCandidates(8)
 
-        self.e = e.RegionElection(self.r)
-        print("BING")
-        self.e.av(self.r.candidates, 3)
-        print("BANG")
-        self.table2 = ElectionTable(self.e)
-        print("BONG")
-
-        self.e2 = e.RegionElection(self.r)
-        self.e.fptp(self.r.candidates)
-        self.table = ElectionTable(self.e)
+        self.v = VoterGraph(self.r)
+        self.v.show_voters()
 
 
 def main():

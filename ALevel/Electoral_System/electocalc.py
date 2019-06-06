@@ -1,5 +1,6 @@
 import random
 import random_name
+import time, datetime
 
 
 class Region(list):
@@ -127,14 +128,18 @@ class Candidate():
         return self.name
 
     def display_info(self):
-        print(self.name + ": " + self.party.name)
+        print(self.info())
+
+    def info(self):
+        return self.name + ": " + self.party.name
 
 
 class Nation(list):
     def __init__(self):
         super(Nation, self).__init__()  # It is a list of the regions it contains
-        self.name = ""
+        self.name = "Country"
         self.parties = []
+        self.elections = []
 
     def print_reps(self):
         max_regionname = str(max(len(region.name) for region in self))
@@ -162,11 +167,6 @@ class Nation(list):
                 p[region.winner.party] = [region.winner]
         return p
 
-    def av(self, cands_per_region=1):
-        for region in self:
-            r = RegionElection(region)
-            r.av(region.candidates, cands_per_region)
-
     def add_regions(self, count, mean_population, population_variance=0):
         for a in range(count):
             r = Region()
@@ -176,6 +176,35 @@ class Nation(list):
     def add_party(self, party):
         self.parties.append(party)
 
+class NationElection():
+    def __init__(self, nation):
+        self.nation = nation
+        self.regionalelections = []
+        self.seats = []
+        self.voting_system = None
+
+        self.electiondate = datetime.datetime.now().isoformat()
+
+        nation.elections.append(self)
+
+    def av(self, representatives_per_region):
+        self.voting_system = "av"
+        rpr = representatives_per_region
+
+    def fptp(self):
+        self.voting_system = "fptp"
+        for region in self.nation:
+            re = RegionElection(region)
+            re.fptp(region.candidates)
+            self.seats += re.seats
+            self.regionalelections.append(re)
+
+    def display_info(self):
+        print("Election in: "+ self.nation.name +" at "+ self.electiondate)
+        for re in self.regionalelections:
+            print("  "+re.region.name)
+            for winner in re.seats:
+                print("   -",winner.info())
 
 class RegionElection():
     def __init__(self, region):
@@ -318,9 +347,6 @@ class RegionElection():
         self.rounds = [votes.copy()]
         # Adds voter percentages
         self.rounds.append({cand: str(round(votes[cand]*100 / total_votes, 3)) + "%" for cand in votes})
-        print(self.rounds[1])
-        print(self.rounds[0])
-
         highest = cands[0]
         for cand in votes:
             if votes[cand] > votes[highest]:
@@ -329,23 +355,8 @@ class RegionElection():
         self.rounds[0]["_winner"] = highest
 
         self.region.elections.append((self.votingsystem, self.rounds))
+        self.seats = [highest]
         return highest
-
-    def proportional(self, party_lists, seat_count):
-        votes = self.collect_vote([p for p in party_lists])
-        total_votes = 0
-        party_seats = {}
-        # {party: seats they should have}
-
-        for v in votes:
-            total_votes += votes[v]
-        for p in votes:
-            votes[p] = votes[p] / total_votes
-        quota = 1 / seat_count
-        for p in votes:
-            if p > quota:
-                seats[p] += votes[p] / quota
-
 
 def gen_region(population=10000, candidate_count=5):
     region = Region()
@@ -360,8 +371,8 @@ def gen_region(population=10000, candidate_count=5):
     return region
 
 
-def gen_house(population=400000, region_count=40, party_count=5):
-    house = Nation(None)
+def gen_nation(population=400000, region_count=40, party_count=5):
+    nation = Nation()
     parties = []
     ppr = population // region_count  # ppr = Population Per Region
     party_colors = ["#D10000", "#0000FF", "#FFCF00", "#00D827",
@@ -379,20 +390,20 @@ def gen_house(population=400000, region_count=40, party_count=5):
     for reg_num in range(region_count):
         r = Region()
         r.bias = gen_leanings(0.3)
-        house.append(r)
-        house[reg_num].candidates = [Candidate(r, party) for party in parties]
+        nation.append(r)
+        nation[reg_num].candidates = [Candidate(party) for party in parties]
         # Adds a candidate to that region's candidate list
         # This region's party' candidate's leaning is the same as their parties leaning
         # But it does slightly change this as each candidate within a party is different
 
         for p in range(ppr):
             v = Voter(r)
-            v.rank(house[reg_num].candidates)
+            v.rank(nation[reg_num].candidates)
             v.leaning = v.leaning[0] + r.bias[0], v.leaning[1] + r.bias[1]
             # ^^ Regional biases
 
-            house[reg_num].append(v)
-    return house
+            nation[reg_num].append(v)
+    return nation
 
 
 def gen_random_color():
