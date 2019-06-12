@@ -1,10 +1,15 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from sys import argv
+
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
+from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
+
 import electocalc as e
 
 class WidgetList(QtWidgets.QScrollArea):
-    def __init__(self, parent = None):
+    def __init__(self, parent=None):
         if parent is None:
             super(WidgetList, self).__init__()
         else:
@@ -43,7 +48,7 @@ class WidgetList(QtWidgets.QScrollArea):
             widget.setFixedSize(widget.width(), widget.height())
             self.RL_VLayout.addWidget(widget)
 
-           # widget.setStyleSheet("background-color:" + widget.bg_colors[len(self.widgets) % 2])
+           # widget.setStyleSheet('background-color:' + widget.bg_colors[len(self.widgets) % 2])
 
         self.RL_Contents.setMinimumSize(300, self.scroller_height)
         self.RL_Layout.setGeometry(QtCore.QRect(0, 0, self.outer_size[0], self.scroller_height))
@@ -70,9 +75,9 @@ class RepView(QtWidgets.QWidget):
         self.font = QtGui.QFont()
         self.font.setPointSize(12)
         self.font.setFamily('Bahnschrift Light')
-        self.bg_colors = ["#FFFFFF", "#EEEEEE"]
+        self.bg_colors = ['#FFFFFF', '#EEEEEE']
         self.block_size = (450, 100)
-    
+
     def init_ui(self):
         self.resize(self.block_size[0], self.block_size[1])
 
@@ -100,20 +105,20 @@ class RepView(QtWidgets.QWidget):
 
         self.Picture = QtWidgets.QLabel(self)
         self.Picture.setGeometry(QtCore.QRect(25, 0, 100, self.block_size[1]))
-        self.Picture.setStyleSheet("background-color: #333333")
+        self.Picture.setStyleSheet('background-color: #333333')
 
         self.Line = QtWidgets.QFrame(self)
         self.Line.setGeometry(QtCore.QRect(0, 99, self.block_size[0], 1))
         self.Line.setFrameShape(QtWidgets.QFrame.HLine)
 
-        self.setStyleSheet("background-color:" + self.bg_colors[0])
+        self.setStyleSheet('background-color:' + self.bg_colors[0])
 
 
         self.verticalLayoutWidget.setGeometry(QtCore.QRect(130, 0, self.block_size[0] - self.PartyColor.width() - self.Picture.width(), self.block_size[1]))
 
 
     def setPartyColor(self, color):
-        self.PartyColor.setStyleSheet("background-color:" + color)
+        self.PartyColor.setStyleSheet('background-color:' + color)
 
     def setName(self, name):
         self.NameLabel.setText(name)
@@ -135,16 +140,16 @@ def view_rep(rep, window = None):
     else:
         repview = RepView(window)
     repinfo = {}
-    repinfo["name"] = rep.name
-    repinfo["party_name"] = rep.party.name
-    repinfo["party_color"] = rep.party.color
-    repinfo["region_name"] = rep.region.name
+    repinfo['name'] = rep.name
+    repinfo['party_name'] = rep.party.name
+    repinfo['party_color'] = rep.party.color
+    repinfo['region_name'] = rep.region.name
 
     repview.init_ui()
-    repview.setName(repinfo["name"])
-    repview.setPartyName(repinfo["party_name"])
-    repview.setPartyColor(repinfo["party_color"])
-    repview.setRegionName(repinfo["region_name"])
+    repview.setName(repinfo['name'])
+    repview.setPartyName(repinfo['party_name'])
+    repview.setPartyColor(repinfo['party_color'])
+    repview.setRegionName(repinfo['region_name'])
     repview.show()
     return repview
 
@@ -196,14 +201,14 @@ class RegionViewer(QtWidgets.QWidget):
 
         self.Region_Form = QtWidgets.QFormLayout(self)
         self.Region_Form.setContentsMargins(0, 0, 0, 0)
-        self.Region_Form.setObjectName("Region_Form")
+        self.Region_Form.setObjectName('Region_Form')
 
         self.NameLbl = QtWidgets.QLabel(self)
-        self.NameLbl.setText("Name: ")
+        self.NameLbl.setText('Name: ')
         self.Region_Form.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.NameLbl)
 
         self.PopLbl = QtWidgets.QLabel(self)
-        self.PopLbl.setText("Population: ")
+        self.PopLbl.setText('Population: ')
         self.Region_Form.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.PopLbl)
 
         self.NameEdit = QtWidgets.QLineEdit(self)
@@ -216,17 +221,17 @@ class RegionViewer(QtWidgets.QWidget):
 
         self.UpdateButton = QtWidgets.QPushButton(self)
         self.Region_Form.setWidget(2, QtWidgets.QFormLayout.SpanningRole, self.UpdateButton)
-        self.UpdateButton.setText("Update")
+        self.UpdateButton.setText('Update')
         self.UpdateButton.clicked.connect(self.update_region)
 
         self.showElectionResultsButton = QtWidgets.QPushButton(self)
-        self.showElectionResultsButton.setText("Show Election Results")
+        self.showElectionResultsButton.setText('Show Election Results')
 
     def set_region(self, region):
         # Change the current region
         self.current_region = region
         self.NameEdit.setText(region.name)
-        self.PopEdit.setProperty("value", (len(region)))
+        self.PopEdit.setProperty('value', (len(region)))
 
     def update_region(self):
         self.current_region.setName(self.NameEdit.text())
@@ -250,10 +255,10 @@ class ElectionTable:
         self.height = 400
 
         self.tables = {
-            "av": self.AV_Table,
-            "fptp": self.FPTP_Table,
-            "dhont": self.Divisor_Table,
-            "webster": self.Divisor_Table
+            'av': self.AV_Table,
+            'fptp': self.FPTP_Table,
+            'dhont': self.Divisor_Table,
+            'webster': self.Divisor_Table
         }
 
         self.table = self.tables[self.vs](election, self)
@@ -267,7 +272,7 @@ class ElectionTable:
             self.rounds = election.rounds
 
             self.candidates = list(self.rounds[0].keys())
-            self.candidates.remove("_loser")
+            self.candidates.remove('_loser')
 
             self.tableClass = tableclass
 
@@ -282,13 +287,13 @@ class ElectionTable:
 
             for i in range(len(self.rounds)):
                 item = QtWidgets.QTableWidgetItem()
-                item.setText(("Round " + str(i + 1)))
+                item.setText(('Round ' + str(i + 1)))
                 self.setHorizontalHeaderItem(i, item)
 
             for c in range(len(self.candidates)):
                 item = QtWidgets.QTableWidgetItem()
                 item.candidate = self.candidates[c]
-                item.setText(self.candidates[c].name + "\n(" + self.candidates[c].party.name + ")")
+                item.setText(self.candidates[c].name + '\n(' + self.candidates[c].party.name + ')')
                 self.setVerticalHeaderItem(c, item)
 
             for r in range(len(self.rounds)):
@@ -305,7 +310,7 @@ class ElectionTable:
                             item.setBackground(QtGui.QColor(180, 255, 180))
                     else:
                         item = QtWidgets.QTableWidgetItem()
-                        item.setText("-")
+                        item.setText('-')
                         self.setItem(c, r, item)
 
 
@@ -321,7 +326,7 @@ class ElectionTable:
             self.rounds = election.rounds
 
             self.candidates = list(self.rounds[0].keys())
-            self.candidates.remove("_winner")
+            self.candidates.remove('_winner')
 
             self.tableClass = tableclass
 
@@ -333,17 +338,17 @@ class ElectionTable:
             self.setRowCount(len(self.candidates))
 
             item = QtWidgets.QTableWidgetItem()
-            item.setText("Votes")
+            item.setText('Votes')
             self.setHorizontalHeaderItem(0, item)
 
             item = QtWidgets.QTableWidgetItem()
-            item.setText("%")
+            item.setText('%')
             self.setHorizontalHeaderItem(1, item)
 
             for c in range(len(self.candidates)):
                 item = QtWidgets.QTableWidgetItem()
                 item.candidate = self.candidates[c]
-                item.setText(self.candidates[c].name + "\n(" + self.candidates[c].party.name + ")")
+                item.setText(self.candidates[c].name + '\n(' + self.candidates[c].party.name + ')')
                 self.setVerticalHeaderItem(c, item)
 
             round = self.rounds[0]
@@ -374,7 +379,7 @@ class ElectionTable:
             self.rounds = election.rounds
 
             self.parties = list(self.rounds[0].keys())
-            self.parties.remove("_winner")
+            self.parties.remove('_winner')
 
             self.tableClass = tableclass
 
@@ -387,10 +392,10 @@ class ElectionTable:
 
             for i in range(len(self.rounds)):
                 item = QtWidgets.QTableWidgetItem()
-                item.setText(("Round " + str(i + 1)))
+                item.setText(('Round ' + str(i + 1)))
                 self.setHorizontalHeaderItem(i, item)
             item = QtWidgets.QTableWidgetItem()
-            item.setText("Total")
+            item.setText('Total')
             self.setHorizontalHeaderItem(len(self.rounds), item)
 
             for p in range(len(self.parties)):
@@ -419,20 +424,90 @@ class ElectionTable:
             self.resizeColumnsToContents()
             self.show()
 
-class VoterGraph():
-    def __init__(self, region):
-        self.fig = plt.figure()
-        self.leanings_x = [voter.leaning[0] for voter in region]
-        self.leanings_y = [voter.leaning[1] for voter in region]
 
-    def show_voters(self):
-        plt.plot(self.leanings_x, self.leanings_y)
+class VoterGraph(QtWidgets.QWidget):
+    def __init__(self, region, window = None):
+        super(VoterGraph, self).__init__()
+        self.region = region
 
-    def show_candidates(self):
-        pass
+        self.Alphascale = 500
+        # Higher the Alphascale, the less transparent
+        self.Sizescale = 40
+        # Higher the Sizescale, the larger
 
-    def show_favourite_parties(self):
-        pass
+        self.initUI(window)
+
+
+    def initUI(self, window):
+        if not window is None:
+            self.setParent(window)
+
+
+
+    def show_figure(self, figure):
+        self.canvas = FigureCanvas(figure)
+        self.figure = figure
+        self.toolbar = NavigationToolbar(self.canvas, self)
+        self.canvas.draw()
+
+
+    def show_leaning(self):
+
+        xleanings = [voter.leaning[0] for voter in self.region]
+        yleanings = [voter.leaning[1] for voter in self.region]
+
+        pop = len(xleanings)
+        alpha = 1/(pop/self.Alphascale) if pop > self.Alphascale else 1
+        size = 1/(pop/self.Sizescale) if pop > self.Sizescale else 1
+
+        self.figure = Figure(dpi=100)
+        ax = self.figure.add_subplot(111)
+        ax.plot(xleanings, yleanings, 'ro', alpha=alpha, color='#DD0000', linewidth=size)
+
+        self.draw()
+        self.show()
+
+    def show_favourite(self, cands):
+        candvotes = {cand:[[],[]] for cand in cands}
+        # {candidate:[[Voters x leanings],[Voters' y leanings]]}
+
+        for voter in self.region:
+            candvotes[voter.rank(cands)[0]][0].append(voter.leaning[0])
+            candvotes[voter.rank(cands)[0]][1].append(voter.leaning[1])
+
+        pop = len(self.region)
+        alpha = 1/(pop/self.Alphascale) if pop > self.Alphascale else 1
+        size = 1/(pop/self.Sizescale) if pop > self.Sizescale else 1
+
+        self.figure = Figure(dpi=100)
+        ax = self.figure.add_subplot(111)
+        for cand in candvotes:
+            x = candvotes[cand][0]
+            y = candvotes[cand][1]
+            ax.plot(x, y, 'rx', alpha=alpha, color=cand.color, linewidth=size)
+
+            candx = cand.leaning[0]
+            candy = cand.leaning[1]
+            ax.plot(candx,candy, 'ro', alpha=1, color=cand.color, linewidth=size*4, markeredgecolor='black')
+
+        self.draw()
+        self.show()
+
+    def show_election(self, election):
+        if election.voting_sytem == 'av':
+            self.show_av(election)
+
+    def show_av(self, election):
+        nextround_btn = QtWidgets.QPushButton(self)
+        lastround_btn = QtWidgets.QPushButton(self)
+
+        nextround_btn.resize(100,100)
+
+        nextround_btn.show()
+        lastround_btn.show()
+
+        self.show()
+
 
 
 class Runn():
@@ -441,14 +516,18 @@ class Runn():
         self.r.addVoters(1000)
         self.r.addCandidates(8)
 
-        self.v = VoterGraph(self.r)
-        self.v.show_voters()
+        self.w = QtWidgets.QMainWindow()
+
+        self.v = VoterGraph(self.r, self.w)
+        self.w.show()
+        self.v.show_av(None)
 
 
 def main():
     app = QtWidgets.QApplication(argv)
     t = Runn()
     app.exec_()
+
 
 if __name__ == '__main__':
     main()

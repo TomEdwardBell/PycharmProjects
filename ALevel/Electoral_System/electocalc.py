@@ -96,10 +96,10 @@ class Party:
         return list
 
     def check_color(self):
-        party_colors = {"Labour": "#DC241F", "Conservative": "#0087DC", "SNP": "#FEF987",
-                        "Liberal Democrats": "#FAA61A",
-                        "DUP": "#D46A4C", "Sinn Fein": "#326760", "Green Party": "#6AB023",
-                        "Plaid Cymru": "#008142"}
+        party_colors = {'Labour': '#DC241F', 'Conservative': '#0087DC', 'SNP': '#FEF987',
+                        'Liberal Democrats': '#FAA61A',
+                        'DUP': '#D46A4C', 'Sinn Fein': '#326760', 'Green Party': '#6AB023',
+                        'Plaid Cymru': '#008142'}
 
         if self.name in party_colors:
             self.color = party_colors[self.name]
@@ -112,7 +112,7 @@ class Candidate():
         self.party = party
         if party == None:
             party = Party()
-            party.name = "Independent"
+            party.name = 'Independent'
             self.party = party
             self.leaning = gen_leanings()
             self.color = gen_random_color()
@@ -131,13 +131,13 @@ class Candidate():
         print(self.info())
 
     def info(self):
-        return self.name + ": " + self.party.name
+        return self.name + ': ' + self.party.name
 
 
 class Nation(list):
     def __init__(self):
         super(Nation, self).__init__()  # It is a list of the regions it contains
-        self.name = "Country"
+        self.name = 'Country'
         self.parties = []
         self.elections = []
 
@@ -146,7 +146,7 @@ class Nation(list):
         max_winnername = str(max(len(region.winner.name) for region in self))
         max_partyname = str(max(len(region.winner.party.name) for region in self))
         for region in self:
-            preformat = ("{:" + max_regionname + "} - {:" + max_winnername + "} - {:" + max_partyname + "}")
+            preformat = ('{:' + max_regionname + '} - {:' + max_winnername + '} - {:' + max_partyname + '}')
             print(preformat.format(region.name, region.winner.name, region.winner.party.name))
 
     def party_count(self):  # Returns a dictionary of each party and how many seats they have
@@ -188,11 +188,11 @@ class NationElection():
         nation.elections.append(self)
 
     def av(self, representatives_per_region):
-        self.voting_system = "av"
+        self.voting_system = 'av'
         rpr = representatives_per_region
 
     def fptp(self):
-        self.voting_system = "fptp"
+        self.voting_system = 'fptp'
         for region in self.nation:
             re = RegionElection(region)
             re.fptp(region.candidates)
@@ -200,11 +200,11 @@ class NationElection():
             self.regionalelections.append(re)
 
     def display_info(self):
-        print("Election in: "+ self.nation.name +" at "+ self.electiondate)
+        print('Election in: '+ self.nation.name +' at '+ self.electiondate)
         for re in self.regionalelections:
-            print("  "+re.region.name)
+            print('  '+re.region.name)
             for winner in re.seats:
-                print("   -",winner.info())
+                print('   -',winner.info())
 
 class RegionElection():
     def __init__(self, region):
@@ -246,7 +246,7 @@ class RegionElection():
                 if partyvotes[party] > partyvotes[most_votes]:
                     most_votes = party
 
-            self.rounds[-1]["_winner"] = most_votes
+            self.rounds[-1]['_winner'] = most_votes
 
             # Add the parties next candidate to the seats list
             seats.append(partylists[most_votes][party_seatswon[most_votes]])
@@ -266,12 +266,12 @@ class RegionElection():
         return seats
 
     def dhont(self, party_lists, seat_count):
-        self.votingsystem = "dhont"
+        self.votingsystem = 'dhont'
         divisors = [1 / (x + 2) for x in range(seat_count)]
         return self.divisor(party_lists, seat_count, divisors)
 
     def webster(self, party_lists, seat_count):
-        self.votingsystem = "webster"
+        self.votingsystem = 'webster'
         divisors = [1 / (2 * x + 3) for x in range(seat_count)]
         return self.divisor(party_lists, seat_count, divisors)
 
@@ -284,7 +284,7 @@ class RegionElection():
         return votes
 
     def av(self, cands, seat_count=1):
-        self.votingsystem = "av"
+        self.votingsystem = 'av'
         ballot_count = {}
         # Dictionary
         # {[list of candidates in order of preference] : number of people who voted that way}
@@ -328,7 +328,7 @@ class RegionElection():
 
             # Remove them
             running.remove(least)
-            self.rounds[-1]["_loser"] = least
+            self.rounds[-1]['_loser'] = least
             seats = running
 
 
@@ -336,7 +336,7 @@ class RegionElection():
         return seats
 
     def fptp(self, cands):
-        self.votingsystem = "fptp"
+        self.votingsystem = 'fptp'
         votes = {cand: 0 for cand in cands}
         total_votes = 0
         for voter in self.region:
@@ -346,13 +346,13 @@ class RegionElection():
 
         self.rounds = [votes.copy()]
         # Adds voter percentages
-        self.rounds.append({cand: str(round(votes[cand]*100 / total_votes, 3)) + "%" for cand in votes})
+        self.rounds.append({cand: str(round(votes[cand]*100 / total_votes, 3)) + '%' for cand in votes})
         highest = cands[0]
         for cand in votes:
             if votes[cand] > votes[highest]:
                 highest = cand
 
-        self.rounds[0]["_winner"] = highest
+        self.rounds[0]['_winner'] = highest
 
         self.region.elections.append((self.votingsystem, self.rounds))
         self.seats = [highest]
@@ -375,11 +375,11 @@ def gen_nation(population=400000, region_count=40, party_count=5):
     nation = Nation()
     parties = []
     ppr = population // region_count  # ppr = Population Per Region
-    party_colors = ["#D10000", "#0000FF", "#FFCF00", "#00D827",
+    party_colors = ['#D10000', '#0000FF', '#FFCF00', '#00D827',
                     # Red         Blue      Yellow     Green
-                    "#FF7D00", "#020049", "#606060", "#00b9f2", "#144C00",
+                    '#FF7D00', '#020049', '#606060', '#00b9f2', '#144C00',
                     # Orange    Navy         Grey     Light Blue   Dark Green
-                    "#890034", "#8C5100"
+                    '#890034', '#8C5100'
                     # Dark-Rose  Brown
                     ]
 
@@ -407,7 +407,7 @@ def gen_nation(population=400000, region_count=40, party_count=5):
 
 
 def gen_random_color():
-    color = "#"
+    color = '#'
     nums = [random.randint(0, 127), random.randint(128, 255), random.randint(0, 255)]
     random.shuffle(nums)
 
