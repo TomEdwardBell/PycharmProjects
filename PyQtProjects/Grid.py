@@ -3,9 +3,8 @@ from sys import argv
 import random
 
 class Options: # Use this to change the options
-    def __init__(self):
-        self.grid_size = (10, 10)
-        self.window_size = (400, 400)
+    grid_size = (10, 10)
+    window_size = (400, 400)
         # ^ Window Size (pixels)
 
 
@@ -19,7 +18,6 @@ class MainGame:
 
     def set_slots(self):
         for (x, y) in self.ui.board:
-            print(x, y)
             self.ui.board[x, y].clicked.connect(lambda state, c=(x, y): self.clicked((x, y)))
 
     def clicked(self, coords):
@@ -33,37 +31,14 @@ class MainGame:
 class Grid(QtWidgets.QMainWindow):
     def __init__(self):
         super(Grid, self).__init__()
-        self.options = Options()
         self.board = {}
         self.widgets = {}
 
-        self.window_size = self.options.window_size
-        self.grid_size = self.options.grid_size
+        self.window_size = Options.window_size
+        self.grid_size = Options.grid_size
 
-        self.margin = (1, 0, 0, 0) # Top margin, Bottom margin, Left Margin, Right Margin
+        self.margin = (0, 0, 0, 0) # Top margin, Bottom margin, Left Margin, Right Margin
         self.borders = (0, 0)
-
-    def init_ui(self):
-        boardx , boardy = self.window_size
-        xcount , ycount = self.grid_size
-        borderx, bordery = self.borders
-
-        self.resize(boardx + self.margin[2] + self.margin[3], boardy + self.margin[0] + self.margin[1])
-        for x in range(xcount):
-            for y in range(ycount):
-                self.board[x, y] = Coord(self)
-                self.board[x, y].coordinates = [x, y]
-
-                xloc = x*(boardx / xcount) + self.margin[2] + (borderx / 4)
-                yloc = y*(boardy / ycount) + self.margin[0] + (bordery / 4)
-
-                width = boardx/xcount - borderx/2
-                height = boardy/ycount - bordery/2
-
-                self.board[x, y].move(xloc, yloc)
-                self.board[x, y].resize(width, height)
-
-                self.board[x, y].set_font_size()
 
 
 class Coord(QtWidgets.QPushButton):

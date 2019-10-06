@@ -1,11 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import random
-import time
-import keyboard
-import os
-import tetris_ui
-
+import pygame
 
 class Options:
     board_width = 10
@@ -31,26 +25,8 @@ class Board(dict):
         self.dead = []
         self.active = []
         self.center = (0, 0)
-
-        self.setup()
-        self.ui = None
-
-    def setup(self):
         self.fill()
-
-        keyboard.add_hotkey('a', lambda: self.check_move((-1, 0)))
-        keyboard.add_hotkey('d', lambda: self.check_move((1, 0)))
-        keyboard.add_hotkey('w', lambda: self.rotate())
-        keyboard.add_hotkey('s', lambda: self.down())
-        self.new_piece()
-
-    def mainloop(self):
-        while self.running:
-            self.tick()
-            if self.running:
-                self.display()
-                self.update_ui()
-                time.sleep(Options.time_gap)
+        self.ui_commands = []
 
     def fill(self):
         for y in range(Options.board_height):
@@ -94,6 +70,16 @@ class Board(dict):
             self[c].die()
         self.active = []
 
+    def input(self, key):
+        if key == "w":
+            self.rotate()
+        elif key == "s":
+            self.down()
+        elif key == "a":
+            self.move((-1, 0))
+        elif key == "d":
+            self.move((1, 0))
+
     def move(self, direction):
         new_active = []
         # Find out new positions
@@ -104,13 +90,12 @@ class Board(dict):
         # Add new pieces
         for n in new_active:
             if n not in self.active:
-                self[n] = Piece()
+                self.make_active(n)
 
         # Remove old pieces
         for c in self.active:
             if c not in new_active:
-                self[c] = Empty()
-                self[c].state = "empty"
+                self.make_empty(c)
 
         # Update self.active
         self.active = new_active
@@ -129,7 +114,6 @@ class Board(dict):
             self.display()
 
     def display(self):
-        os.system('cls')
         print('--------------------')
         for y in range(Options.board_height):
             line = ''
@@ -181,26 +165,30 @@ class Board(dict):
             # Add new pieces
             for n in new_active:
                 if n not in self.active:
-                    self[n] = Piece()
+                    self.make_active(n)
 
             # Remove old pieces
             for c in self.active:
                 if c not in new_active:
-                    self[c] = Empty()
-                    self[c].state = "empty"
-            self.display()
-            self.active = new_active
+                    self.make_empty(c)
 
-    def update_ui(self):
-        for y in range(Options.board_height):
-            for x in range(Options.board_width):
-                print("{}{}bing".format(x, y))
-                state = self[x, y].state
-                self.ui.update((x, y), state)
+            self.active = new_active
+            self.make_active(new_active)
+
+    def make_empty(self, c):
+        x, y = c
+        self[c] = Empty()
+        self.state = "empty"
+        self.ui_commands.append((x, y, 'empty'))
+
+    def make_active(self, c):
+        x, y = c
+        self[c] = Piece()
+        self.state = "active"
+        self.ui_commands.append((x, y, 'active'))
 
     def game_over(self):
-        self.running = False
-        print('DEAD')
+        self.ui_commands.append("QUIT")
 
 
 class Empty():
@@ -235,4 +223,64 @@ def coord_add(t1, t2):
     return t1[0] + t2[0], t1[1] + t2[1]
 
 
+class TetrisScreen():
+    def __init__(self, window_size, grid_size, game):
+        super(TetrisScreen, self).__init__()
+        self.window_size = window_size
+        self.grid_size = grid_size
+        self.square_size = self.grid_size[0] / self.window_size[0], self.grid_size[1] / self.window_size[1]
+
+        self.game = game
+
+        self.state_colors = {
+            'dead': '#555555',
+            'active': '#FF0000',
+            'empty': '#FFFFFF'
+        }
+
+    def create_pygame(self):
+        pygame.init()
+
+        self.screen = pygame.display.set_mode(self.window_size)
+        self.game_finished = False
+
+        xsize, ysize = self.square_size
+
+    def set_color(self, coords, color):
+        x, y = coords
+        xsize, ysize = self.square_size
+        pygame.draw.rect(self.screen, color, pygame.Rect(x, y, xsize, ysize))
+
+
+    def display(self):
+        for
+
+    def run_game(self):
+        clock = pygame.time.Clock()
+
+        while not self:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    done = True
+            pressed = pygame.key.get_pressed()
+            if pressed[pygame.K_w]: self.game.input("w")
+            if pressed[pygame.K_a]: self.game.input("a")
+            if pressed[pygame.K_s]: self.game.input("s")
+            if pressed[pygame.K_d]: self.game.input("d")
+
+            self.game.tick()
+
+            self.display(self.game)
+
+            self.game.ui_commands = []
+
+            pygame.display.flip()
+            clock.tick(30)
+
+        pygame.quit()
+
 b = Board()
+
+t = TetrisScreen((500, 1000), (5, 10), Board())
+t.create_pygame()
+t.run_game()
