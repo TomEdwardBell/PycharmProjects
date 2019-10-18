@@ -43,12 +43,11 @@ def region():
               'Vaux', 'Vex', 'Wal', 'Wans', 'War', 'Wasp', 'Wat', 'Well', 'Win'  # Vs Ws Xs Ys Zs
               ]
 
-    suffixes = ['bridge', 'bury', 'by', 'cester', 'chester', 'cliffe', 'don', 'dif','erton', 'field', 'ford', 'ferry',
+    suffixes = ['bridge', 'bury', 'by', 'cester', 'chester', 'cliffe', 'don', 'dif', 'erton', 'field', 'ford', 'ferry',
                 'ham', 'ick', 'ing', 'ington', 'itch', 'mouth', 'ney', 'pool', 'sea',
                 'shire', 'sley', 'ter', 'ton', 'wood', 'worth']
 
-    if prob(0.7): # One long location name
-
+    if prob(0.7):  # One long location name
         name = random.choice(starts) + random.choice(suffixes)
         if prob(0.5):
             name += random.choice(locations)
@@ -61,4 +60,3 @@ def region():
 
 def prob(p):
     return random.random() < p
-
