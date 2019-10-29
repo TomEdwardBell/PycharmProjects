@@ -65,6 +65,7 @@ class MainGame:
         self.ui.widgets.flag_btn.clicked.connect(self.flag_switch)
 
     def clicked(self, coords, realclick):
+        print(coords)
         #time.sleep(0.05)
         x, y = coords
         ignore_realclick = False

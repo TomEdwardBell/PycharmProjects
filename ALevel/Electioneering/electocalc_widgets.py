@@ -187,13 +187,13 @@ class CandEdit(QtWidgets.QWidget):
     font.setPointSize(12)
     font.setFamily('Bahnschrift Light')
 
-    def __init__(self, cand=None, ui = None):
+    def __init__(self, candidate=None, ui = None):
         super(CandEdit, self).__init__()
         if ui is not None:
             self.setParent(ui)
-        if cand is None:
-            self.cand = e.Candidate()
-        self.cand = cand
+        if candidate is None:
+            self.candidate = e.Candidate()
+        self.candidate = candidate
         self.layout = QtWidgets.QFormLayout()
         self.setLayout(self.layout)
         self.init_ui()
@@ -206,7 +206,7 @@ class CandEdit(QtWidgets.QWidget):
 
         self.namelabel = QtWidgets.QLabel('Name:')
         self.layout.setWidget(0, self.layout.LabelRole, self.namelabel)
-        self.nameedit = QtWidgets.QLineEdit(self.cand.name)
+        self.nameedit = QtWidgets.QLineEdit(self.candidate.name)
         self.layout.setWidget(0, self.layout.FieldRole, self.nameedit)
 
 
@@ -214,15 +214,15 @@ class CandEdit(QtWidgets.QWidget):
         self.layout.setWidget(1, self.layout.LabelRole, self.leaninglabel)
 
         self.leaninglayout = QtWidgets.QHBoxLayout()
-        self.leaningedit0 = QtWidgets.QLineEdit(str(round(self.cand.leaning[0], 3)))
-        self.leaningedit1 = QtWidgets.QLineEdit(str(round(self.cand.leaning[1], 3)))
+        self.leaningedit0 = QtWidgets.QLineEdit(str(round(self.candidate.leaning[0], 3)))
+        self.leaningedit1 = QtWidgets.QLineEdit(str(round(self.candidate.leaning[1], 3)))
         self.leaninglayout.addWidget(self.leaningedit0)
         self.leaninglayout.addWidget(self.leaningedit1)
         self.layout.setLayout(1, self.layout.FieldRole, self.leaninglayout)
 
         self.relevancelabel = QtWidgets.QLabel('Relevance: ')
         self.layout.setWidget(2, self.layout.LabelRole, self.relevancelabel)
-        self.relevanceedit = QtWidgets.QLineEdit(str(round(self.cand.relevance, 3)))
+        self.relevanceedit = QtWidgets.QLineEdit(str(round(self.candidate.relevance, 3)))
         self.layout.setWidget(2, self.layout.FieldRole, self.relevanceedit)
 
         self.partylabel = QtWidgets.QLabel('Party: ')
@@ -252,9 +252,9 @@ class CandEdit(QtWidgets.QWidget):
             invalids.append(self.relevanceedit)
 
         if not invalids:
-            self.cand.name = self.nameedit.text()
-            self.cand.leaning = float(self.leaningedit0.text()), float(self.leaningedit1.text())
-            self.cand.relevance = float(self.relevanceedit.text())
+            self.candidate.name = self.nameedit.text()
+            self.candidate.leaning = float(self.leaningedit0.text()), float(self.leaningedit1.text())
+            self.candidate.relevance = float(self.relevanceedit.text())
             self.destroy()
         else:
             for widget in invalids:
@@ -337,125 +337,10 @@ class RepView(QtWidgets.QWidget):
         self.init_ui()
 
 
-class ElectionRunner():
+class RegionElectionRunner():
     class CandidateElectionOptions(QtWidgets.QWidget):
         def __init__(self, election):
-            super(ElectionRunner.CandidateElectionOptions, self).__init__()
-            self.layout = QtWidgets.QFormLayout()
-            self.setLayout(self.layout)
-            self.election = election
-
-            self.votingsystemlabel = QtWidgets.QLabel("Voting System: ")
-            self.layout.setWidget(0, self.layout.LabelRole, self.votingsystemlabel)
-            self.votingsystemfield = QtWidgets.QLabel(self.election.votingsystem)
-            self.layout.setWidget(0, self.layout.FieldRole, self.votingsystemfield)
-
-            self.repsnumlabel = QtWidgets.QLabel("Number of Seats")
-            self.layout.setWidget(1, self.layout.LabelRole, self.repsnumlabel)
-            self.repsnumspinbox = QtWidgets.QSpinBox(self)
-            self.repsnumspinbox.setMinimum(1)
-            self.repsnumspinbox.setMaximum(20)
-            self.repsnumspinbox.setValue(self.election.region.reps_to_send)
-            self.layout.setWidget(1, self.layout.FieldRole, self.repsnumspinbox)
-
-            self.candslabel = QtWidgets.QLabel("Candidates")
-            self.layout.setWidget(2, self.layout.LabelRole, self.candslabel)
-            self.candsbutton = QtWidgets.QPushButton("Click to view candidates")
-            self.candsbutton.clicked.connect(self.loadcandslist)
-            self.layout.setWidget(2, self.layout.FieldRole, self.candsbutton)
-
-            self.runbutton = QtWidgets.QPushButton('Run')
-            self.runbutton.clicked.connect(self.runelection)
-            self.layout.setWidget(3, self.layout.FieldRole, self.runbutton)
-
-            self.resize(100, 100)
-            self.show()
-
-        def runelection(self):
-            self.election.run_candidate_election(self.election.votingsystem, self.election.candidates)
-            ElectionTable(self.election)
-            self.destroy()
-
-
-        def loadcandslist(self):
-            self.candslist = self.CandsList(self.election)
-            for cand in self.election.candidates:
-                self.candslist.append(self.CandButton(cand))
-
-        class CandButton(QtWidgets.QPushButton):
-            def __init__(self, cand):
-                super(ElectionRunner.CandidateElectionOptions.CandButton, self).__init__()
-                self.hide()
-                self.cand = cand
-                self.edit = None
-                self.resize(300, 100)
-                self.setText(cand.name)
-                self.clicked.connect(self.editcand)
-
-            def editcand(self):
-                if self.edit is not None:
-                    self.edit.destroy()
-                    self.edit = None
-                self.edit = CandEdit(self.cand)
-                self.edit.donebutton.clicked.connect(lambda cand=self.cand: [self.edit.save(), self.setText(self.name)])
-                self.setText(self.cand.name)
-
-        class CandsList(WidgetList):
-            def __init__(self, election):
-                super(ElectionRunner.CandidateElectionOptions.CandsList, self).__init__()
-                self.outer_size = (320, 500)
-                self.init_ui()
-                self.election = election
-                self.addbutton = QtWidgets.QPushButton('Add Candidate')
-                self.addbutton.clicked.connect(self.addcand)
-                self.append(self.addbutton)
-
-            def addcand(self):
-                cand = e.Candidate()
-                self.election.candidates.append(cand)
-                candbutton = ElectionRunner.CandidateElectionOptions.CandButton(cand)
-                self.append(candbutton)
-
-
-
-    class DivisorElectionOptions(QtWidgets.QWidget):
-        pass
-
-    class VotingSystemChooser(WidgetList):
-        def __init__(self, parent_ui, election):
-            super(ElectionRunner.VotingSystemChooser, self).__init__()
-            self.init_ui()
-            vs_names = list(election.candidatesystems.keys()) + list(election.partylistsystems.keys())
-            self.resize(500, 700)
-            buttons = []
-            for vs in vs_names:
-                buttons.append(QtWidgets.QPushButton(self))
-                buttons[-1].setText(vs)
-                buttons[-1].resize(500, 100)
-                buttons[-1].clicked.connect(lambda c=vs: parent_ui.load_options(c))
-                self.append(buttons[-1])
-
-
-    def __init__(self, **kwargs):
-        if 'region' in kwargs:
-            self.election = e.RegionElection(kwargs['region'])
-        else:
-            self.election = e.RegionElection(e.region())
-
-        self.vs_chooser = ElectionRunner.VotingSystemChooser(self, self.election)
-        self.vs = ""
-
-    def load_options(self, vs):
-        if vs in self.election.candidatesystems:
-            self.vs_chooser.destroy()
-            self.election.votingsystem = vs
-            self.election_options = ElectionRunner.CandidateElectionOptions(self.election)
-
-
-class ElectionRunner2():
-    class CandidateElectionOptions(QtWidgets.QWidget):
-        def __init__(self, election):
-            super(ElectionRunner2.CandidateElectionOptions, self).__init__()
+            super(RegionElectionRunner.CandidateElectionOptions, self).__init__()
             self.layout = QtWidgets.QFormLayout()
             self.setLayout(self.layout)
             self.election = election
@@ -471,7 +356,7 @@ class ElectionRunner2():
             self.repsnumspinbox = QtWidgets.QSpinBox(self)
             self.repsnumspinbox.setMinimum(1)
             self.repsnumspinbox.setMaximum(20)
-            self.repsnumspinbox.setValue(self.election.region.reps_to_send)
+            self.repsnumspinbox.setValue(self.election.region.seat_count)
             self.layout.setWidget(1, self.layout.FieldRole, self.repsnumspinbox)
 
             self.candslabel = QtWidgets.QLabel("Candidates")
@@ -489,39 +374,38 @@ class ElectionRunner2():
 
         def runelection(self):
             self.done = True
-            print(self.repsnumspinbox.value(), type(self.repsnumspinbox.value()))
-            self.election.region.reps_to_send = self.repsnumspinbox.value()
-            self.election.run_candidate_election(self.election.votingsystem, self.election.candidates)
+            self.election.region.seat_count = self.repsnumspinbox.value()
+            self.election.run(self.election.votingsystem, self.election.candidates)
             ElectionTable(self.election)
             self.destroy()
 
 
         def loadcandslist(self):
             self.candslist = self.CandsList(self.election)
-            for cand in self.election.candidates:
-                self.candslist.append(self.CandButton(cand))
+            for candidate in self.election.candidates:
+                self.candslist.append(self.CandButton(candidate))
 
         class CandButton(QtWidgets.QPushButton):
-            def __init__(self, cand):
-                super(ElectionRunner2.CandidateElectionOptions.CandButton, self).__init__()
+            def __init__(self, candidate):
+                super(RegionElectionRunner.CandidateElectionOptions.CandButton, self).__init__()
                 self.hide()
-                self.cand = cand
+                self.candidate = candidate
                 self.edit = None
                 self.resize(300, 100)
-                self.setText(cand.name)
+                self.setText(candidate.name)
                 self.clicked.connect(self.editcand)
 
             def editcand(self):
                 if self.edit is not None:
                     self.edit.destroy()
                     self.edit = None
-                self.edit = CandEdit(self.cand)
-                self.edit.donebutton.clicked.connect(lambda cand=self.cand: [self.edit.save(), self.setText(cand.name)])
-                self.setText(self.cand.name)
+                self.edit = CandEdit(self.candidate)
+                self.edit.donebutton.clicked.connect(lambda candidate=self.candidate: [self.edit.save(), self.setText(candidate.name)])
+                self.setText(self.candidate.name)
 
         class CandsList(WidgetList):
             def __init__(self, election):
-                super(ElectionRunner2.CandidateElectionOptions.CandsList, self).__init__()
+                super(RegionElectionRunner.CandidateElectionOptions.CandsList, self).__init__()
                 self.outer_size = (320, 500)
                 self.init_ui()
                 self.election = election
@@ -530,31 +414,34 @@ class ElectionRunner2():
                 self.append(self.addbutton)
 
             def addcand(self):
-                cand = e.Candidate()
-                self.election.candidates.append(cand)
-                candbutton = ElectionRunner.CandidateElectionOptions.CandButton(cand)
+                candidate = e.Candidate()
+                self.election.candidates.append(candidate)
+                candbutton = RegionElectionRunner.CandidateElectionOptions.CandButton(candidate)
                 self.append(candbutton)
 
     class DivisorElectionOptions(QtWidgets.QWidget):
         pass
 
+    class VotingSystemButton(QtWidgets.QPushButton):
+        def __init__(self, vs, widgetlist):
+            super(RegionElectionRunner.VotingSystemButton, self).__init__(widgetlist)
+            self.setText(vs)
+            self.resize(500, 100)
+            self.clicked.connect(lambda: widgetlist.clicked(vs))
+
     class VotingSystemChooser(WidgetList):
         def __init__(self, parent_ui, election):
-            super(ElectionRunner2.VotingSystemChooser, self).__init__()
+            super(RegionElectionRunner.VotingSystemChooser, self).__init__()
             self.init_ui()
             self.done = False
             vs_names = list(election.candidatesystems.keys()) + list(election.partylistsystems.keys())
             self.resize(500, 700)
             buttons = []
             for vs in vs_names:
-                buttons.append(QtWidgets.QPushButton(self))
-                buttons[-1].setText(vs)
-                buttons[-1].resize(500, 100)
-                buttons[-1].clicked.connect(lambda vs=vs: self.clicked(vs))
+                buttons.append(RegionElectionRunner.VotingSystemButton(vs, self))
                 self.append(buttons[-1])
 
         def clicked(self, vs):
-            print(vs)
             self.vs = vs
             self.done = True
 
@@ -565,23 +452,23 @@ class ElectionRunner2():
             self.election = e.RegionElection(e.region())
 
         self.vs = ""
-        self.vs_chooser = ElectionRunner2.VotingSystemChooser(self, self.election)
+        self.vs_chooser = RegionElectionRunner.VotingSystemChooser(self, self.election)
         while not self.vs_chooser.done:
             QtWidgets.QApplication.processEvents()
             time.sleep(0.05)
 
         self.election.votingsystem = self.vs_chooser.vs
-        print(self.vs_chooser.vs)
         if self.election.votingsystem in self.election.candidatesystems:
             self.vs_chooser.destroy()
-            self.election_options = ElectionRunner2.CandidateElectionOptions(self.election)
+            self.election_options = RegionElectionRunner.CandidateElectionOptions(self.election)
             self.election_options.done = False
             while not self.election_options.done:
                 QtWidgets.QApplication.processEvents()
                 time.sleep(0.05)
-        else:
-            print("shit")
 
+
+class NationalElectionRunner():
+    pass
 
 
 class RegionScroller(WidgetList):
@@ -692,10 +579,8 @@ class RegionViewer(QtWidgets.QWidget):
             self.show()
             self.resize(RegionViewer.c1_width, RegionViewer.electionlist_height)
 
-            self.add_election()
-
         def add_election(self):
-            runner = ElectionRunner2(region=self.region)
+            runner = RegionElectionRunner(region=self.region)
             election = runner.election
             self.append(RegionViewer.ElectionButton(election, 0, self))
 
@@ -830,14 +715,14 @@ class ElectionTable:
             for r in range(len(self.rounds)):
                 round = self.rounds[r]
                 for c in range(len(self.candidates)):
-                    cand = self.candidates[c]
-                    if cand in round.candidates():
+                    candidate = self.candidates[c]
+                    if candidate in round.candidates():
                         item = QtWidgets.QTableWidgetItem()
-                        item.setText(str(round.votes[cand]))
+                        item.setText(str(round.votes[candidate]))
                         self.setItem(c, r, item)
-                        if cand in round.losers:
+                        if candidate in round.losers:
                             item.setBackground(QtGui.QColor(255, 180, 180))
-                        elif cand in round.winners:
+                        elif candidate in round.winners:
                             item.setBackground(QtGui.QColor(180, 255, 180))
                     else:
                         item = QtWidgets.QTableWidgetItem()
@@ -882,14 +767,14 @@ class ElectionTable:
             for r in range(len(self.rounds)):
                 this_round = self.rounds[r]
                 for c in range(len(self.candidates)):
-                    cand = self.candidates[c]
-                    if cand in this_round.candidates():
+                    candidate = self.candidates[c]
+                    if candidate in this_round.candidates():
                         item = QtWidgets.QTableWidgetItem()
-                        item.setText(str(round(this_round.votes[cand], 3)))
+                        item.setText(str(round(this_round.votes[candidate], 3)))
                         self.setItem(c, r, item)
-                        if cand in this_round.losers:
+                        if candidate in this_round.losers:
                             item.setBackground(QtGui.QColor(255, 180, 180))
-                        elif cand in this_round.winners:
+                        elif candidate in this_round.winners:
                             item.setBackground(QtGui.QColor(180, 255, 180))
                     else:
                         item = QtWidgets.QTableWidgetItem()
@@ -933,15 +818,15 @@ class ElectionTable:
                 self.setVerticalHeaderItem(c, item)
 
             for c in range(len(self.candidates)):
-                cand = self.candidates[c]
-                if cand in self.round.votes:
+                candidate = self.candidates[c]
+                if candidate in self.round.votes:
                     votecount = QtWidgets.QTableWidgetItem()
-                    votecount.setText(str(self.round.votes[cand]))
+                    votecount.setText(str(self.round.votes[candidate]))
                     self.setItem(c, 0, votecount)
                     voteperc = QtWidgets.QTableWidgetItem()
-                    voteperc.setText(str(self.round.percentages[cand]))
+                    voteperc.setText(str(self.round.percentages[candidate]))
                     self.setItem(c, 1, voteperc)
-                    if cand in self.round.winners:
+                    if candidate in self.round.winners:
                         votecount.setBackground(QtGui.QColor(180, 255, 180))
                         voteperc.setBackground(QtGui.QColor(180, 255, 180))
 
@@ -989,7 +874,7 @@ class ElectionTable:
                     item = QtWidgets.QTableWidgetItem()
                     item.setText(str(round.votes[party]))
                     self.setItem(p, r, item)
-                    if round.winner.party == party:
+                    if round.winners[0].party == party:
                         item.setBackground(QtGui.QColor(180, 255, 180))
 
             for p in range(len(self.parties)):
@@ -1032,13 +917,13 @@ class ElectionTable:
                 self.setVerticalHeaderItem(c, item)
 
             for c in range(len(self.candidates)):
-                cand = self.candidates[c]
-                if cand in self.round.candidates():
+                candidate = self.candidates[c]
+                if candidate in self.round.candidates():
                     points = QtWidgets.QTableWidgetItem()
-                    point_count = str(round(self.round.votes[cand], 3))
+                    point_count = str(round(self.round.votes[candidate], 3))
                     points.setText(point_count)
                     self.setItem(c, 0, points)
-                    if cand in self.round.winners:
+                    if candidate in self.round.winners:
                         points.setBackground(QtGui.QColor(180, 255, 180))
 
 
@@ -1089,13 +974,13 @@ class VoterGraph(QtWidgets.QWidget):
         self.draw()
         self.show()
 
-    def show_favourite(self, cands):
-        candvotes = {cand:[[],[]] for cand in cands}
+    def show_favourite(self, candidates):
+        candvotes = {candidate:[[],[]] for candidate in candidates}
         # {candidate:[[Voters x leaning],[Voters' y leaning]]}
 
         for voter in self.region:
-            candvotes[voter.rank(cands)[0]][0].append(voter.leaning[0])
-            candvotes[voter.rank(cands)[0]][1].append(voter.leaning[1])
+            candvotes[voter.rank(candidates)[0]][0].append(voter.leaning[0])
+            candvotes[voter.rank(candidates)[0]][1].append(voter.leaning[1])
 
         pop = len(self.region)
         alpha = 1/(pop/self.Alphascale) if pop > self.Alphascale else 1
@@ -1103,14 +988,14 @@ class VoterGraph(QtWidgets.QWidget):
 
         self.figure = Figure(dpi=100)
         ax = self.figure.add_subplot(111)
-        for cand in candvotes:
-            x = candvotes[cand][0]
-            y = candvotes[cand][1]
-            ax.plot(x, y, 'rx', alpha=alpha, color=cand.color, linewidth=size)
+        for candidate in candvotes:
+            x = candvotes[candidate][0]
+            y = candvotes[candidate][1]
+            ax.plot(x, y, 'rx', alpha=alpha, color=candidate.color, linewidth=size)
 
-            candx = cand.leaning[0]
-            candy = cand.leaning[1]
-            ax.plot(candx,candy, 'ro', alpha=1, color=cand.color, linewidth=size*4, markeredgecolor='black')
+            candx = candidate.leaning[0]
+            candy = candidate.leaning[1]
+            ax.plot(candx,candy, 'ro', alpha=1, color=candidate.color, linewidth=size*4, markeredgecolor='black')
 
         self.draw()
         self.show()
@@ -1134,8 +1019,8 @@ class VoterGraph(QtWidgets.QWidget):
 class Runn():
     def __init__(self):
         self.r = e.Region()
-        self.r.add_voters(1000)
-        self.r.reps_to_send = 2
+        self.r.add_voters(20)
+        self.r.seat_count = 2
         self.rv = RegionViewer(self.r)
 
 
