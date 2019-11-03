@@ -41,24 +41,24 @@ def party():
     nouns = ['Peace', 'Freedom', 'Democracy', 'Liberalism', 'Unity', 'Action', 'Hope', 'Socialism', 'Communism',
              'The Nation', 'The Country', 'The People', 'The Planet', 'Liberty', 'Welfare', 'Equality', 'Progress',
              'Change', 'Reform', 'Tradition', 'Science', 'Business', 'Justice', 'Respect', 'Law', 'Ecology',
-             'Revolution', 'Labour', 'Rights', 'The Future', 'Social Justice']
+             'Revolution', 'Labour', 'Rights', 'The Future', 'Social Justice', 'Independence']
 
     people = ['Workers', 'Citizens', 'Democrats', 'Liberals', 'Fishermen', 'Farmers', 'Unionists', 'Nationalists',
               'Students', 'Pensioners', 'Christians', 'Catholics', 'Protestants', 'Muslims', 'Farmers', 'Independents',
               'Republicans', 'Animals', 'Veterans', 'Miners', 'Voters', 'The Middle Class', 'The Working Class',
-              'Socialists', 'Communists', 'Centrists', 'Royalists', 'Conservatives', 'Socialists']
+              'Socialists', 'Communists', 'Centrists', 'Royalists', 'Conservatives', 'Socialists', 'People']
 
     adjectives = ['Socialist', 'Communist', 'Republican', 'Democratic', 'United', 'Humanist', 'Pirate',
                   'Revolutionary', 'Libertarian', 'Christian', 'Muslim', 'Conservative', 'Liberal', 'Progressive',
-                  'Independent', 'Popular', 'National', 'Federal', 'Marxist', 'Leninist', 'Populist', 'Patriotic',
+                  'Independent', 'Popular', 'National', 'Federal', 'Populist', 'Patriotic',
                   'Rural', 'Urban', 'Environmental', 'Green', 'Secular']
 
-    structures = ['The [a] Party', 'The [a]-[a] Party', "The [p]' Party", 'The [n] Party', '[a] Party',
+    structures = ['The [a] Party', 'The [a]-[a] Party', "The [p]'s Party", 'The [n] Party', '[a] Party',
                   'The [a] [pn] Party', 'The Party for [pn]', 'The [a] and [a] Party', 'The [a] [a] Party',
-                  'The Party Against [pn]', 'The New [a] Party', 'The [a] Party for [pn]',
-                  'The Coalition of [pn]', 'The [a] Voice', 'The [a] League', '[n]!',
+                  'The Party Against [pn]', 'The New [a] Party', 'The [a] Party for [pn]', 'The [a] Voice',
+                  'The Coalition of [pn]', 'The [a] League', '[n]!', 'The [p]\'s Front', 'The [a] Front',
                   'The [a] Alliance of [p]', 'The [a] Alliance', 'The Alliance of [p] and [p]', 'The Alliance for [n]',
-                  'The [a] Group for [n]', 'The [a] Group of [p]', '[f]\'s [a] Party', 'The [a] [p]']
+                  'The [a] Group for [n]', 'The [a] Group of [p]', '[f]\'s [a] Party', 'The [a] [p]', '[p] for [n]']
 
     name = random.choice(structures)
     while '[a]' in name:
@@ -73,6 +73,7 @@ def party():
         name = name.replace('[f]', full(), 1)
 
     name = name.replace('The The', 'The')
+    name = name.replace("s's", "s'")
 
     return name
 

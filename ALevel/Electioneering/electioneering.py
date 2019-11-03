@@ -227,6 +227,7 @@ class Party:
                 initials += word[-1]
         return initials
 
+
 class Candidate:
     def __init__(self,  **kwargs):
         super(Candidate, self).__init__()
@@ -408,15 +409,8 @@ class NationElection:
     def run(self, vs):
         # Will run a general election with each region holding a RegionElection under a selected voting system
         for region in self.nation:
-            re = RegionElection(region)
+            re = RegionElection(region=region, voting_system=vs)
             self.region_elections.append(re)
-
-            if vs in re.candidatesystems:
-                re.create_candidates()
-            elif vs in re.partylistsystems:
-                re.create_party_lists()
-
-            re.run(vs)
             self.reps += re.reps
 
     def popular_vote(self):
@@ -449,7 +443,7 @@ class RegionElection:
             self.roundnum = 0
             self.winners = []
             self.losers = []
-            self.votingsystem = None
+            self.voting_system = None
             self.votes = {}
             self.percentages = {}
 
@@ -536,7 +530,6 @@ class RegionElection:
             for order in orders_to_pop:
                 self.pop(order)
 
-
         def add_vote(self, order, num=1, eliminated=None):
             if eliminated is None:
                 eliminated = []
@@ -574,15 +567,20 @@ class RegionElection:
                         v[order[0]][order] = self[order]
             return v
 
-    def __init__(self, region):
-        self.region = region
+    def __init__(self, **kwargs):
+        self.region = kwargs.get('region', Region(population=1000))
+        self.voting_system = kwargs.get('voting_system', '')
+        self.parties = kwargs.get('parties', self.region.parties())
+        self.candidates = kwargs.get('candidates', [])
+        self.seat_count = kwargs.get('seat_count', self.region.seat_count)
+        self.region.seat_count = self.seat_count
+        self.min_candidates = kwargs.get('min_candidates', self.seat_count + 5)
+        self.min_parties = kwargs.get('min_parties', 2)
+
         self.rounds = []
         self.party_seatcount = {}
         self.reps = []
-        self.votingsystem = None
         self.order = []
-        self.candidates = []
-        self.partylists = []
 
         self.candidatesystems = {
             'av': self.av,
@@ -597,30 +595,33 @@ class RegionElection:
             'webster': self.webster,
         }
 
-    def create_candidates(self):
-        minimum_candidates = 3 + self.region.seat_count
-        for party in self.region.parties():
-            self.candidates += [Candidate(party=party) for i in range(self.region.seat_count)]
+        if self.voting_system in self.candidatesystems:
+            if len(self.candidates) < self.min_candidates:
+                # If there are not enough candidates
+                # Add candidates from each party
+                for party in self.region.parties():
+                    self.candidates += [Candidate(region=self.region, party=party) for c in range(self.seat_count)]
 
-        if len(self.candidates) < self.region.seat_count:
-            diff = self.region.seat_count - len(self.candidates)
-            self.candidates += [Candidate() for i in range(diff)]
+            # If there are still not enough candidates, add some independents
+            if len(self.candidates) < self.min_candidates:
+                diff = self.min_candidates - len(self.candidates)
+                self.candidates += [Candidate(region=self.region) for c in range(diff)]
 
+            self.candidatesystems[self.voting_system]()
 
-    def create_party_lists(self):
-        for party in self.region.parties:
-            self.partylists.append(party.gen_list(self.region.seat_count))
+        elif self.voting_system in self.partylistsystems:
+            if len(self.parties) < self.min_parties:
+                diff = self.min_parties - self.min_parties
+                self.parties += [Party() for i in range(diff)]
 
-    def run(self, votingsystem):
-        if votingsystem in self.candidatesystems:
-            self.candidatesystems[votingsystem]()
-        elif votingsystem in self.partylistsystems:
-            self.partylistsystems[votingsystem]()
+            self.partylists = {party: party.gen_list(self.seat_count) for party in self.parties}
+
+            self.partylistsystems[self.voting_system]()
 
     def av(self):
         # Like STV, however the quota is removed
         # Lowest ranked candidates get removed until the number of candidates left is equal to the seat_count
-        self.votingsystem = "av"
+        self.voting_system = "av"
         self.rounds = []
 
         votes = RegionElection.Votes()
@@ -630,6 +631,11 @@ class RegionElection:
             votes.add_vote(order, 1)
 
         seat_num = self.region.seat_count
+        if len(self.candidates) < seat_num:
+            seat_num = len(self.candidates)
+        if len(self.candidates) == 0:
+            return False
+
         won = []
         eliminated = []
         running = self.candidates.copy()
@@ -665,6 +671,11 @@ class RegionElection:
                 if candidate in running and prefs[candidate] < prefs[loser]:
                     loser = candidate
 
+            # If there are any candidates with 0 votes that haven't been eliminated, they become the round loser
+            for candidate in running:
+                if candidate not in prefs:
+                    loser = candidate
+
             # Set them as round loser
             self.rounds[-1].losers = [loser]
             eliminated.append(loser)
@@ -677,15 +688,22 @@ class RegionElection:
         return won
 
     def fptp(self):
-        self.votingsystem = 'fptp'
+        self.voting_system = 'fptp'
         candidates = self.candidates
+
+        seat_count = self.region.seat_count
+        if len(self.candidates) < seat_count:
+            seat_count = len(self.candidates)
+        if len(self.candidates) == 0:
+            return False
+
         votes = {candidate: 0 for candidate in candidates}
         # Each candidate starts with 0 votes
         total_votes = 0
         for voter in self.region:
-            favs = voter.rank(candidates)[0:self.region.seat_count]
+            favs = voter.rank(candidates)[0:seat_count]
             # Every voter votes for their favourite candidate
-            #
+            # If multiple candidates are to be elected, you put as many X's as there are candidates
             for fav in favs:
                 votes[fav] += 1
             total_votes += len(favs)
@@ -706,7 +724,7 @@ class RegionElection:
 
     def stv(self):
         candidates = self.candidates
-        self.votingsystem = "stv"
+        self.voting_system = "stv"
         self.rounds = []
 
         votes = RegionElection.Votes()
@@ -717,6 +735,10 @@ class RegionElection:
             votes.add_vote(order, 1)
 
         seat_num = self.region.seat_count
+        if len(self.candidates) < seat_num:
+            seat_num = len(self.candidates)
+        if len(self.candidates) == 0:
+            return False
         won = []
         eliminated = []
         running = candidates.copy()
@@ -768,10 +790,16 @@ class RegionElection:
 
             if running == []:
                 continue
+
             # Find lowest ranked candidate thats still running
             loser = list(prefs.keys())[0]
             for candidate in prefs:
                 if candidate in running and prefs[candidate] < prefs[loser]:
+                    loser = candidate
+
+            # If there are any candidates with 0 votes that haven't been eliminated, they become the round loser
+            for candidate in running:
+                if candidate not in prefs:
                     loser = candidate
 
             # Set them as round loser
@@ -786,7 +814,7 @@ class RegionElection:
         return won
 
     def borda(self):
-        self.votingsystem = "borda"
+        self.voting_system = "borda"
         # Uses a points based system
         # Your least fav candidate gets one point
         # Your second least fav gets two, etc
@@ -806,7 +834,7 @@ class RegionElection:
         # Add the round to self.rounds
         self.rounds = [RegionElection.Round()]
         self.rounds[0].votes = cand_points.copy()
-        self.rounds[0].votingsystem = self.votingsystem
+        self.rounds[0].voting_system = self.voting_system
         self.rounds[0].winners = [highest]
 
         self.region.reps = [highest]
@@ -814,7 +842,7 @@ class RegionElection:
         return [highest]
 
     def dowdall(self):
-        self.votingsystem = "dowdall"
+        self.voting_system = "dowdall"
         # Also a points based system
         # Fav candidate gets 1 point
         # Second fav gets 1/2 a point, etc
@@ -832,7 +860,7 @@ class RegionElection:
         # Rounds system
         self.rounds = [RegionElection.Round()]
         self.rounds[0].votes = cand_points.copy()
-        self.rounds[0].votingsystem = self.votingsystem
+        self.rounds[0].voting_system = self.voting_system
         self.rounds[0].winners = winners
 
         self.region.reps = winners
@@ -844,14 +872,14 @@ class RegionElection:
         # Party with the most votes earns a seat
         # The number of votes they now have is equal to:
         #     number of votes they had originally) / (number of seats they now have +1)
-        self.votingsystem = 'dhont'
+        self.voting_system = 'dhont'
         divisors = [1 / (x + 2) for x in range(self.region.seat_count)]
         return self.divisor(divisors)
 
     def webster(self):
         # A divisor based voting system
         # But with a slightly different set of divisors
-        self.votingsystem = 'webster'
+        self.voting_system = 'webster'
         divisors = [1 / (2 * x + 3) for x in range(self.region.seat_count)]
         return self.divisor(divisors)
 
@@ -861,6 +889,7 @@ class RegionElection:
         self.rounds = []
         self.party_seatcount = {}
         reps = []
+        self.parties = list(party_lists.keys())
 
         # partylists is a dictionary, {party:[list of candidates (in order)]}
         # Seat number is the number of seats that region will send to the parliament
@@ -881,7 +910,7 @@ class RegionElection:
         while len(reps) < self.region.seat_count:
             self.rounds.append(RegionElection.Round())
             r = self.rounds[-1]
-            r.votingsystem = self.votingsystem
+            r.voting_system = self.voting_system
             r.votes = partyvotes.copy()
 
             # Find party with most votes
@@ -889,12 +918,11 @@ class RegionElection:
 
             # Add the parties next candidate to the seats list
             reps.append(party_lists[most_votes][party_seatswon[most_votes]])
-            r.winners = [party_lists[most_votes][party_seatswon[most_votes]]]
+            r.winners = [party_lists[most_votes][party_seatswon[most_votes]], most_votes]
 
             # set that parties votes to (number of original votes for that party)*(divisors[seat_number])
             # As you get more seats the number of votes you have decreases
-            partyvotes[most_votes] = int(
-                round(original_party_votes[most_votes] * divisors[party_seatswon[most_votes]], 0))
+            partyvotes[most_votes] = round(original_party_votes[most_votes] * divisors[party_seatswon[most_votes]], 0)
 
             # Increase party:seats dict by 1
             party_seatswon[most_votes] += 1
@@ -904,6 +932,7 @@ class RegionElection:
         # Set attributes
         self.region.elections.append(self)
         self.party_seatcount = party_seatswon
+        self.order = self.rank_dict(party_seatswon)
         self.reps = reps
         self.region.reps = reps
         return reps
@@ -923,6 +952,17 @@ class RegionElection:
             votes[voter.rank(candidates)[0]] += 1
         return votes
 
+    def print_rounds(self):
+        for r in range(len(self.rounds)):
+            print(f'Round {r}:')
+            if self.voting_system in self.candidatesystems:
+                cands = self.candidates
+            elif self.voting_system in self.partylistsystems:
+                cands = self.parties
+            for cand in cands:
+                if cand in self.rounds[r].votes:
+                    print(f'    {cand.name}: {self.rounds[r].votes[cand]}')
+
 
 def gen_random_color():
     color = '#'
@@ -939,9 +979,13 @@ def gen_leaning(factor=1.0):
 
 
 def main():
-    while True:
-        print(random_name.party(), end="")
-        input()
+    n = Nation()
+    n.create_regions(10, 120000)
+    n.set_seat_count(30)
+    ne = NationElection(nation=n)
+    ne.run('av')
+    print(n.reps())
+
 if __name__ == '__main__':
     main()
 

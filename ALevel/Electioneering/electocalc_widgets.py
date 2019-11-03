@@ -346,10 +346,10 @@ class RegionElectionRunner():
             self.election = election
             self.done = False
 
-            self.votingsystemlabel = QtWidgets.QLabel("Voting System: ")
-            self.layout.setWidget(0, self.layout.LabelRole, self.votingsystemlabel)
-            self.votingsystemfield = QtWidgets.QLabel(self.election.votingsystem)
-            self.layout.setWidget(0, self.layout.FieldRole, self.votingsystemfield)
+            self.voting_systemlabel = QtWidgets.QLabel("Voting System: ")
+            self.layout.setWidget(0, self.layout.LabelRole, self.voting_systemlabel)
+            self.voting_systemfield = QtWidgets.QLabel(self.election.voting_system)
+            self.layout.setWidget(0, self.layout.FieldRole, self.voting_systemfield)
 
             self.repsnumlabel = QtWidgets.QLabel("Number of Seats")
             self.layout.setWidget(1, self.layout.LabelRole, self.repsnumlabel)
@@ -375,7 +375,7 @@ class RegionElectionRunner():
         def runelection(self):
             self.done = True
             self.election.region.seat_count = self.repsnumspinbox.value()
-            self.election.run(self.election.votingsystem, self.election.candidates)
+            self.election.run(self.election.voting_system, self.election.candidates)
             ElectionTable(self.election)
             self.destroy()
 
@@ -422,23 +422,23 @@ class RegionElectionRunner():
     class DivisorElectionOptions(QtWidgets.QWidget):
         pass
 
-    class VotingSystemButton(QtWidgets.QPushButton):
+    class voting_systemButton(QtWidgets.QPushButton):
         def __init__(self, vs, widgetlist):
-            super(RegionElectionRunner.VotingSystemButton, self).__init__(widgetlist)
+            super(RegionElectionRunner.voting_systemButton, self).__init__(widgetlist)
             self.setText(vs)
             self.resize(500, 100)
             self.clicked.connect(lambda: widgetlist.clicked(vs))
 
-    class VotingSystemChooser(WidgetList):
+    class voting_systemChooser(WidgetList):
         def __init__(self, parent_ui, election):
-            super(RegionElectionRunner.VotingSystemChooser, self).__init__()
+            super(RegionElectionRunner.voting_systemChooser, self).__init__()
             self.init_ui()
             self.done = False
             vs_names = list(election.candidatesystems.keys()) + list(election.partylistsystems.keys())
             self.resize(500, 700)
             buttons = []
             for vs in vs_names:
-                buttons.append(RegionElectionRunner.VotingSystemButton(vs, self))
+                buttons.append(RegionElectionRunner.voting_systemButton(vs, self))
                 self.append(buttons[-1])
 
         def clicked(self, vs):
@@ -447,18 +447,18 @@ class RegionElectionRunner():
 
     def __init__(self, **kwargs):
         if 'region' in kwargs:
-            self.election = e.RegionElection(kwargs['region'])
+            self.election = e.RegionElection(region=kwargs['region'])
         else:
-            self.election = e.RegionElection(e.region())
+            self.election = e.RegionElection()
 
         self.vs = ""
-        self.vs_chooser = RegionElectionRunner.VotingSystemChooser(self, self.election)
+        self.vs_chooser = RegionElectionRunner.voting_systemChooser(self, self.election)
         while not self.vs_chooser.done:
             QtWidgets.QApplication.processEvents()
             time.sleep(0.05)
 
-        self.election.votingsystem = self.vs_chooser.vs
-        if self.election.votingsystem in self.election.candidatesystems:
+        self.election.voting_system = self.vs_chooser.vs
+        if self.election.voting_system in self.election.candidatesystems:
             self.vs_chooser.destroy()
             self.election_options = RegionElectionRunner.CandidateElectionOptions(self.election)
             self.election_options.done = False
@@ -542,7 +542,7 @@ class RegionViewer(QtWidgets.QWidget):
         def __init__(self, election, num,ui):
             super(RegionViewer.ElectionButton, self).__init__(ui)
             self.election = election
-            #self.setText(str(num + 1) + ". " + election.votingsystem)
+            #self.setText(str(num + 1) + ". " + election.voting_system)
             self.setText(". ")
             self.setFont(RegionViewer.font)
 
@@ -655,281 +655,96 @@ class RegionList(QtWidgets.QWidget):
         self.current_region.setPopulation(self.PopEdit.value())
 
 
-class ElectionTable:
-    def __init__(self, election, ui = None):
-        self.ui = ui
-        self.votingsystem = election.votingsystem
-        self.election = election
-        self.ui = ui
-        self.width = 600
-        self.height = 400
+class ElectionTable(QtWidgets.QTableWidget):
+    def __init__(self, election):
+        super(ElectionTable, self).__init__()
 
-        self.tables = {
-            'av': self.STV_Table,
-            'stv': self.STV_Table,
-            'fptp': self.FPTP_Table,
-            'dhont': self.Divisor_Table,
-            'webster': self.Divisor_Table,
-            'borda': self.Borda_Table,
-            'dowdall': self.Borda_Table
-        }
+        self.winner_color = '#80DA80'
+        self.loser_color =  '#E39494'
 
-
-    def load(self):
-        if self.votingsystem in self.tables.keys():
-            tabletype = self.tables[self.votingsystem]
-            self.table = tabletype(self.election, self)
-            if self.ui is not None:
-                self.table.setParent(self.ui)
-
-
-    class AV_Table(QtWidgets.QTableWidget):
-        def __init__(self, election, tableclass):
-            super(ElectionTable.AV_Table, self).__init__()
-            self.election = election
-            self.rounds = election.rounds
-
-            self.candidates = election.order
-
-            self.tableClass = tableclass
-
-            self.load()
-
-        def load(self):
-            self.resize(self.tableClass.width, self.tableClass.height)
-            self.setColumnCount(len(self.rounds))
-            self.setRowCount(len(self.candidates))
-
-            self.setSortingEnabled(False)
-
-            for i in range(len(self.rounds)):
+        # Set the column headers
+        if election.voting_system in ['av', 'stv', 'dhont', 'webster']:
+            self.setColumnCount(len(election.rounds))
+            self.setRowCount(len(election.order))
+            for r in range(len(election.rounds)):
                 item = QtWidgets.QTableWidgetItem()
-                item.setText(('Round ' + str(i + 1)))
-                self.setHorizontalHeaderItem(i, item)
-
-            for c in range(len(self.candidates)):
-                item = QtWidgets.QTableWidgetItem()
-                item.setText(f'{self.candidates[c].name}\n({self.candidates[c].party.name})')
-                self.setVerticalHeaderItem(c, item)
-
-            for r in range(len(self.rounds)):
-                round = self.rounds[r]
-                for c in range(len(self.candidates)):
-                    candidate = self.candidates[c]
-                    if candidate in round.candidates():
-                        item = QtWidgets.QTableWidgetItem()
-                        item.setText(str(round.votes[candidate]))
-                        self.setItem(c, r, item)
-                        if candidate in round.losers:
-                            item.setBackground(QtGui.QColor(255, 180, 180))
-                        elif candidate in round.winners:
-                            item.setBackground(QtGui.QColor(180, 255, 180))
-                    else:
-                        item = QtWidgets.QTableWidgetItem()
-                        item.setText('-')
-                        self.setItem(c, r, item)
+                item.setText('Round '+str(r + 1))
+                self.setHorizontalHeaderItem(r, item)
 
 
-            self.resizeRowsToContents()
-            self.resizeColumnsToContents()
-            self.show()
-
-
-    class STV_Table(QtWidgets.QTableWidget):
-        def __init__(self, election, tableclass):
-            super(ElectionTable.STV_Table, self).__init__()
-            self.election = election
-            self.rounds = election.rounds
-
-            self.candidates = election.order
-
-            self.tableClass = tableclass
-
-            self.load()
-
-        def load(self):
-            self.resize(self.tableClass.width, self.tableClass.height)
-            self.setColumnCount(len(self.rounds))
-            self.setRowCount(len(self.candidates))
-
-            self.setSortingEnabled(False)
-
-            for i in range(len(self.rounds)):
-                item = QtWidgets.QTableWidgetItem()
-                item.setText(('Round ' + str(i + 1)))
-                self.setHorizontalHeaderItem(i, item)
-
-            for c in range(len(self.candidates)):
-                item = QtWidgets.QTableWidgetItem()
-                item.setText(f'{self.candidates[c].name}\n({self.candidates[c].party.name})')
-                self.setVerticalHeaderItem(c, item)
-
-            for r in range(len(self.rounds)):
-                this_round = self.rounds[r]
-                for c in range(len(self.candidates)):
-                    candidate = self.candidates[c]
-                    if candidate in this_round.candidates():
-                        item = QtWidgets.QTableWidgetItem()
-                        item.setText(str(round(this_round.votes[candidate], 3)))
-                        self.setItem(c, r, item)
-                        if candidate in this_round.losers:
-                            item.setBackground(QtGui.QColor(255, 180, 180))
-                        elif candidate in this_round.winners:
-                            item.setBackground(QtGui.QColor(180, 255, 180))
-                    else:
-                        item = QtWidgets.QTableWidgetItem()
-                        item.setText('-')
-                        self.setItem(c, r, item)
-
-
-            self.resizeRowsToContents()
-            self.resizeColumnsToContents()
-            self.show()
-
-    class FPTP_Table(QtWidgets.QTableWidget):
-        def __init__(self, election, tableclass):
-            super(ElectionTable.FPTP_Table, self).__init__()
-            self.election = election
-            self.round = election.rounds[0]
-
-            self.candidates = list(self.round.candidates())
-
-            self.tableClass = tableclass
-
-            self.load()
-
-        def load(self):
-            self.resize(self.tableClass.width, self.tableClass.height)
+        elif election.voting_system in ['borda', 'dowdall', 'fptp']:
             self.setColumnCount(2)
-            self.setRowCount(len(self.candidates))
+            self.setRowCount(len(election.candidates))
+            self.setHorizontalHeaderItem(0, QtWidgets.QTableWidgetItem('Votes'))
+            self.setHorizontalHeaderItem(1, QtWidgets.QTableWidgetItem('Percentages'))
 
-            item = QtWidgets.QTableWidgetItem()
-            item.setText('Votes')
-            self.setHorizontalHeaderItem(0, item)
 
-            item = QtWidgets.QTableWidgetItem()
-            item.setText('%')
-            self.setHorizontalHeaderItem(1, item)
+        # Go through each round and put the information into the table
+        if election.voting_system in ['dhont', 'webster']:
+            for p in range(len(election.parties)):
+                party = election.parties[p]
 
-            for c in range(len(self.candidates)):
                 item = QtWidgets.QTableWidgetItem()
-                item.candidate = self.candidates[c]
-                item.setText(self.candidates[c].name + '\n(' + self.candidates[c].party.name + ')')
-                self.setVerticalHeaderItem(c, item)
+                item.setText(party.name)
 
-            for c in range(len(self.candidates)):
-                candidate = self.candidates[c]
-                if candidate in self.round.votes:
-                    votecount = QtWidgets.QTableWidgetItem()
-                    votecount.setText(str(self.round.votes[candidate]))
-                    self.setItem(c, 0, votecount)
-                    voteperc = QtWidgets.QTableWidgetItem()
-                    voteperc.setText(str(self.round.percentages[candidate]))
-                    self.setItem(c, 1, voteperc)
-                    if candidate in self.round.winners:
-                        votecount.setBackground(QtGui.QColor(180, 255, 180))
-                        voteperc.setBackground(QtGui.QColor(180, 255, 180))
+                icon = QtGui.QIcon()
+                pixmap = QtGui.QPixmap(50, 50)
+                pixmap.fill(QtGui.QColor(party.color))
+                icon.addPixmap(pixmap)
+                item.setIcon(icon)
 
-            self.resizeRowsToContents()
-            self.resizeColumnsToContents()
-            self.show()
-
-
-    class Divisor_Table(QtWidgets.QTableWidget):
-        def __init__(self, election, tableclass):
-            super(ElectionTable.Divisor_Table, self).__init__()
-
-            self.election = election
-            self.rounds = election.rounds
-
-            self.parties = list(self.rounds[0].votes.keys())
-
-            self.tableClass = tableclass
-
-            self.load()
-
-        def load(self):
-            self.resize(self.tableClass.width, self.tableClass.height)
-            self.setColumnCount(len(self.rounds) + 1)
-            self.setRowCount(len(self.parties))
-
-            for i in range(len(self.rounds)):
-                item = QtWidgets.QTableWidgetItem()
-                item.setText(('Round ' + str(i + 1)))
-                self.setHorizontalHeaderItem(i, item)
-            item = QtWidgets.QTableWidgetItem()
-            item.setText('Total')
-            self.setHorizontalHeaderItem(len(self.rounds), item)
-
-            for p in range(len(self.parties)):
-                item = QtWidgets.QTableWidgetItem()
-                item.party = self.parties[p]
-                item.setText(self.parties[p].name)
                 self.setVerticalHeaderItem(p, item)
 
-            for r in range(len(self.rounds)):
-                round = self.rounds[r]
-                for p in range(len(self.parties)):
-                    party = self.parties[p]
+
+            for r in range(len(election.rounds)):
+                this_round = election.rounds[r]
+                for p in range(len(election.order)):
+                    party = election.order[p]
                     item = QtWidgets.QTableWidgetItem()
-                    item.setText(str(round.votes[party]))
+                    item.setText(str(this_round.votes[party]))
+                    if party in this_round.winners:
+                        item.setBackgroundColor(QtGui.QColor(self.winner_color))
+                        item.setText(f'{str(this_round.votes[party])}\n({this_round.winners[0].name})')
                     self.setItem(p, r, item)
-                    if round.winners[0].party == party:
-                        item.setBackground(QtGui.QColor(180, 255, 180))
 
-            for p in range(len(self.parties)):
-                total = self.election.party_seatcount[self.parties[p]]
+        elif election.voting_system in ['av', 'stv']:
+            for c in range(len(election.order)):
+                candidate = election.order[c]
                 item = QtWidgets.QTableWidgetItem()
-                item.setText(str(total))
-                item.setBackground(QtGui.QColor(200, 200, 200))
-                self.setItem(p, len(self.rounds), item)
+                item.setText(f'{candidate.name}\n({candidate.party.name})')
 
-            self.resizeRowsToContents()
-            self.resizeColumnsToContents()
-            self.show()
+                icon = QtGui.QIcon()
+                pixmap = QtGui.QPixmap(50, 50)
+                pixmap.setDevicePixelRatio(100)
+                pixmap.fill(QtGui.QColor(candidate.party.color))
+                icon.addPixmap(pixmap)
+                item.setIcon(icon)
 
-
-    class Borda_Table(QtWidgets.QTableWidget):
-        def __init__(self, election, tableclass):
-            super(ElectionTable.Borda_Table, self).__init__()
-            self.election = election
-            self.round = election.rounds[0]
-
-            self.candidates = list(self.round.candidates())
-
-            self.tableClass = tableclass
-
-            self.load()
-
-        def load(self):
-            self.resize(self.tableClass.width, self.tableClass.height)
-            self.setColumnCount(1)
-            self.setRowCount(len(self.candidates))
-
-            item = QtWidgets.QTableWidgetItem()
-            item.setText('Points')
-            self.setHorizontalHeaderItem(0, item)
-
-            for c in range(len(self.candidates)):
-                item = QtWidgets.QTableWidgetItem()
-                item.candidate = self.candidates[c]
-                item.setText(self.candidates[c].name + '\n(' + self.candidates[c].party.name + ')')
                 self.setVerticalHeaderItem(c, item)
 
-            for c in range(len(self.candidates)):
-                candidate = self.candidates[c]
-                if candidate in self.round.candidates():
-                    points = QtWidgets.QTableWidgetItem()
-                    point_count = str(round(self.round.votes[candidate], 3))
-                    points.setText(point_count)
-                    self.setItem(c, 0, points)
-                    if candidate in self.round.winners:
-                        points.setBackground(QtGui.QColor(180, 255, 180))
+                for r in range(len(election.rounds)):
+                    this_round = election.rounds[r]
+                    for c in range(len(election.order)):
+                        candidate = election.order[c]
+                        item = QtWidgets.QTableWidgetItem()
+                        if candidate in this_round.votes:
+                            item.setText(str(round(this_round.votes[candidate], 2)))
+                            if candidate in this_round.winners:
+                                item.setBackgroundColor(QtGui.QColor(self.winner_color))
+                            if candidate in this_round.losers:
+                                item.setBackgroundColor(QtGui.QColor(self.loser_color))
+                        else:
+                            item.setText('0')
+                        self.setItem(c, r, item)
+
+        elif election.voting_system in ['fptp', 'borda', 'dowdall']:
 
 
-            self.resizeRowsToContents()
-            self.resizeColumnsToContents()
-            self.show()
+        self.resizeRowsToContents()
+        self.resizeColumnsToContents()
+        self.adjustSize()
+        self.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.show()
 
 
 class VoterGraph(QtWidgets.QWidget):
@@ -1001,7 +816,7 @@ class VoterGraph(QtWidgets.QWidget):
         self.show()
 
     def show_election(self, election):
-        if election.votingsystem == 'av':
+        if election.voting_system == 'av':
             self.show_av(election)
 
     def show_av(self, election):
@@ -1019,9 +834,12 @@ class VoterGraph(QtWidgets.QWidget):
 class Runn():
     def __init__(self):
         self.r = e.Region()
-        self.r.add_voters(20)
-        self.r.seat_count = 2
-        self.rv = RegionViewer(self.r)
+        self.r.add_voters(20000)
+        self.r.seat_count = 1
+        self.r.create_local_parties(10)
+        self.re = e.RegionElection(region=self.r, voting_system='fptp')
+        self.re.print_rounds()
+        self.t = ElectionTable(self.re)
 
 
 
