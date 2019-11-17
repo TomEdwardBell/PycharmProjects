@@ -4,10 +4,6 @@ import random
 import time
 from collections import Counter
 
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
-from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
 
 import electioneering as e
 
@@ -477,7 +473,7 @@ class RegionElectionRunner():
                 self.candsbutton.clicked.connect(self.loadcandslist)
                 self.layout.setWidget(2, self.layout.FieldRole, self.candsbutton)
 
-            elif election.voting_system in ['dhont', 'webster']:
+            elif election.voting_system in ['dhondt', 'webster']:
                 self.partieslabel = QtWidgets.QLabel("Parties")
                 self.layout.setWidget(2, self.layout.LabelRole, self.partieslabel)
                 self.partiesbutton = QtWidgets.QPushButton("Click to edit Parties")
@@ -576,8 +572,8 @@ class RegionElectionRunner():
 
 
 class NationViewer(QtWidgets.QWidget):
-    map_width = 1000
-    map_height = 1000
+    map_width = 2000
+    map_height = 2000
     side_bar_width = 200
 
     class SideBar(WidgetList):
@@ -652,7 +648,7 @@ class NationMap(QtWidgets.QScrollArea):
             name = name.replace(' ', '\n')
             self.setText(name)
 
-            self.setMinimumSize(100, 100)
+            self.setMinimumSize(20, 20)
 
             self.clicked.connect(self.view_region)
 
@@ -877,7 +873,7 @@ class ElectionTable(QtWidgets.QTableWidget):
         self.loser_color =  '#E39494'
 
         # Set the column headers
-        if election.voting_system in ['runoff', 'stv', 'dhont', 'webster']:
+        if election.voting_system in ['runoff', 'stv', 'dhondt', 'webster']:
             self.setColumnCount(len(election.rounds))
             self.setRowCount(len(election.order))
             for r in range(len(election.rounds)):
@@ -892,9 +888,15 @@ class ElectionTable(QtWidgets.QTableWidget):
             self.setHorizontalHeaderItem(0, QtWidgets.QTableWidgetItem('Votes'))
             self.setHorizontalHeaderItem(1, QtWidgets.QTableWidgetItem('Percentages'))
 
+        
+
+
+
+
+
 
         # Go through each round and put the information into the table
-        if election.voting_system in ['dhont', 'webster']:
+        if election.voting_system in ['dhondt', 'webster']:
             for p in range(len(election.order)):
                 party = election.order[p]
 
@@ -967,9 +969,10 @@ class ElectionTable(QtWidgets.QTableWidget):
 class Runn():
     def __init__(self):
         self.n = e.Nation(map_width=6, map_height=6)
-        self.n.create_regions(24, 1000)
+
+        self.n.add_regions([e.Region(population=random.randint(1000, 4000)) for i in range(30)])
         [self.n.add_party(e.Party()) for i in range(6)]
-        self.n.set_seat_count(70)
+        self.n.set_seat_count(100)
         self.ne = e.NationElection(nation=self.n)
         self.ne.run('stv')
         self.map = NationViewer(self.n)
