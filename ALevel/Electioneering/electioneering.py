@@ -82,7 +82,7 @@ class Region:
 
     def gen_bias(self):
         self.bias = (0, 0)
-        self.set_bias(gen_leaning(0.4))
+        self.set_bias(gen_leaning(0.6))
         return self.bias
 
     def combine(self, r2):
@@ -123,6 +123,12 @@ class Region:
 
         self.reps.append(r2.reps)
         self.seat_count += r2.seat_count
+
+    def add_party(self, party=None):
+        if party is None:
+            party = Party()
+        party.region = self
+        self.local_parties.append(party)
 
     def __iter__(self):
         return self.voters.__iter__()
@@ -166,7 +172,7 @@ class Party:
 
         if 'color' in kwargs:
             self.color = kwargs['color']
-        elif not self.check_color():
+        else:
             self.color = gen_random_color()
 
         if 'leaning' in kwargs:
@@ -277,8 +283,7 @@ class Nation:
         self.map_width = kwargs.get('map_width', 10)
         self.map_height = kwargs.get('map_height', 10)
 
-        self.region_map = {}
-        self.free_spaces = [(x, y) for x in range(self.map_width) for y in range(self.map_height)]
+        self.region_map = [[None for y in range(self.map_height)] for x in range(self.map_width)]
 
         self.parties = kwargs.get('parties', [])
 
@@ -287,6 +292,21 @@ class Nation:
         order = sorted(rbp.keys(), key=rbp.get)[::-1]
         for party in order:
             print(f'{party} ({party.initials()}): {rbp[party]}')
+
+    def mean_population(self):
+        if len(self.regions()) != 0:
+            return int(self.population() / len(self.regions()))
+        else:
+            return 1000
+
+    def free_spaces(self):
+        frees = []
+        for x in range(self.map_width):
+                for y in range(self.map_height):
+                    if self.region_map[x][y] is None:
+                        frees.append((x, y))
+
+        return frees
 
     def add_party(self, party):
         self.parties.append(party)
@@ -297,7 +317,10 @@ class Nation:
             self.add_region(region)
 
     def add_region(self, region=None, x=None, y=None):
+        if region is None:
+            region = Region(population=self.mean_population())
         region.nation = self
+
         if self.is_full() and x is None and y is None:
             self.resize_map(self.map_width + 1, self.map_height + 1)
 
@@ -309,51 +332,40 @@ class Nation:
         if y > self.map_height + 1:
             self.resize_map(self.map_width, y)
 
-        if (x, y) in self.free_spaces:
-            self.region_map[(x, y)] = region
-            self.free_spaces.remove((x, y))
+        if (x, y) in self.free_spaces():
+            self.region_map[x][y] = region
         if x >= self.map_width:
             self.map_width = x + 1
         if y >= self.map_height:
             self.map_height = y + 1
 
-    def resize_map (self, width, height):
-        if width < self.map_width:
-            # Gets rid of all regions within the range you want to delete
-            for x in range(width, self.map_width):
-                for y in range(self.map_height):
-                    if (x, y) in self.region_map:
-                        region = self.region_map.pop((x, y))
-                        del region
-            self.map_width = width
-
-        if height < self.map_height:
-            for y in range(height, self.map_height):
-                for x in range(self.map_width):
-                    if (x, y) in self.region_map:
-                        region = self.region_map.pop((x, y))
-                        del region
-            self.map_height = height
-
+    def resize_map(self, width, height):
         if width > self.map_width:
             for x in range(self.map_width, width):
-                for y in range(self.map_height):
-                    self.free_spaces.append((x, y))
-            self.map_width = width
+                self.region_map.append([None for y in range(0, self.map_height)])
+
+        elif width < self.map_width:
+            for x in range(width, self.map_width):
+                self.region_map.pop(-1)
+
+        self.map_width = width
 
         if height > self.map_height:
-            for y in range(self.map_height, height):
-                for x in range(self.map_width):
-                    self.free_spaces.append((x, y))
-            self.map_height = height
+            for x in range(self.map_width):
+                self.region_map[x] += [None for y in range(self.map_height, height)]
 
+        elif height < self.map_height:
+            for x in range(self.map_width):
+                for y in range(height, self.map_height):
+                    self.region_map[x].pop(-1)
 
-
+        self.map_height = height
+        
     def random_free_coords(self):
         if self.is_full():
             return False
         else:
-            x, y = random.choice(self.free_spaces)
+            x, y = random.choice(self.free_spaces())
             return x, y
 
     def set_seat_count(self, total):
@@ -401,13 +413,14 @@ class Nation:
         return len(self.regions()) == 0
 
     def is_full(self):
-        return len(self.regions()) == self.map_height * self.map_width
+        return self.free_spaces() == []
 
     def regions(self):
         r = []
-        for key in self.region_map:
-            if self.region_map[key] is not None:
-                r.append(self.region_map[key])
+        for sub in self.region_map:
+            for region in sub:
+                if region is not None:
+                    r.append(region)
         return r
 
     def __repr__(self):

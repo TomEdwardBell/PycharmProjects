@@ -7,6 +7,7 @@ from collections import Counter
 
 import electioneering as e
 
+
 class WidgetList(QtWidgets.QScrollArea):
     def __init__(self, parent=None):
         super(WidgetList, self).__init__()
@@ -39,6 +40,7 @@ class WidgetList(QtWidgets.QScrollArea):
         if type(widgets) != list:
             widgets = [widgets]
         for widget in widgets:
+            widget.setParent(self)
             widget.show()
             self.widgets.append(widget)
             self.scroller_height += widget.height()
@@ -62,41 +64,76 @@ class WidgetList(QtWidgets.QScrollArea):
 
 
 class PartiesList(WidgetList):
-    def __init__(self, mode, local_parties, national_parties, region=None):
+    def __init__(self, mode, local_parties, national_parties, RegionOrNation=None):
         super(PartiesList, self).__init__()
         self.outer_size = (700, 600)
         self.mode = mode
-        self.region = region
 
         self.init_ui()
         self.move(500, 500)
 
-        if mode == 'edit':
-            self.addbutton = QtWidgets.QPushButton(self)
-            self.addbutton.setText('+')
-            self.addbutton.setFont(QtGui.QFont('Arial', 60))
-            self.addbutton.resize(100, 100)
-            self.append(self.addbutton)
-            self.addbutton.clicked.connect(self.addparty)
-        elif mode == 'select':
+        if type(RegionOrNation) == e.Nation:
+            self.region_type = 'nation'
+            self.nation = RegionOrNation
+            self.region = RegionOrNation
+        elif type(RegionOrNation) == e.Region:
+            self.region_type = 'region'
+            self.region = RegionOrNation
+
+        print(type(RegionOrNation))
+        print(type(RegionOrNation) == e.Nation)
+
+        if mode == 'select':
             self.selected_party = False
 
-        national_parties_label = QtWidgets.QLabel("National Parties: ")
-        national_parties_label.setFont(QtGui.QFont('Arial', 20))
-        self.append(national_parties_label)
-        for party in national_parties:
+        if national_parties != [] or self.region_type == 'nation':
+            national_parties_label = QtWidgets.QLabel("National Parties: ")
+            national_parties_label.setFont(QtGui.QFont('Arial', 20))
+            self.append(national_parties_label)
+
+            if mode == 'edit' and self.region_type == 'nation':
+                self.add_national_button = QtWidgets.QPushButton(self)
+                self.add_national_button.setText('Add National Party')
+                self.add_national_button.setFont(QtGui.QFont('Arial', 15))
+                self.add_national_button.resize(500, 60)
+                self.append(self.add_national_button)
+                self.add_national_button.clicked.connect(self.add_national_party)
+
+
+            for party in national_parties:
+                self.append(PartiesList.PartyButton(party, self))
+
+        if local_parties != [] or self.region_type == 'region':
+            local_parties_label = QtWidgets.QLabel("Local Parties: ")
+            local_parties_label.setFont(QtGui.QFont('Arial', 20))
+            self.append(local_parties_label)
+                
+            if mode == 'edit' and self.region_type == 'region':
+                self.add_regional_button = QtWidgets.QPushButton(self)
+                self.add_regional_button.setText('Add Regional Party')
+                self.add_regional_button.setFont(QtGui.QFont('Arial', 15))
+                self.add_regional_button.resize(500, 60)
+                self.append(self.add_regional_button)
+                self.add_regional_button.clicked.connect(self.add_regional_party)
+                
+
+            for party in local_parties:
+                self.append(PartiesList.PartyButton(party, self))
+
+    def add_national_party(self):
+        if self.region_type =='nation':
+            party = e.Party(region=self.region)
+            self.region.add_party(party)
+
             self.append(PartiesList.PartyButton(party, self))
 
-        local_parties_label = QtWidgets.QLabel("Local Parties: ")
-        local_parties_label.setFont(QtGui.QFont('Arial', 20))
-        self.append(local_parties_label)
-        for party in local_parties:
+    def add_regional_party(self):
+        if self.region_type == 'region':
+            party = e.Party()
+            self.region.add_party(party)
+
             self.append(PartiesList.PartyButton(party, self))
 
-    def addparty(self):
-        party = e.Party(region=self.region)
-        self.region.local_parties.append(party)
-        self.append(PartiesList.PartyButton(party, self))
 
     class PartyButton(QtWidgets.QPushButton):
         def __init__(self, party ,ui):
@@ -342,7 +379,6 @@ class CandEdit(QtWidgets.QWidget):
 
 
 class RepView(QtWidgets.QWidget):
-    # TODO: Make the label clickable buttons that take you to that parties page
     def __init__(self, window = None, rep = None):
         if window is None:
             super(RepView, self).__init__()
@@ -355,14 +391,15 @@ class RepView(QtWidgets.QWidget):
         self.bg_colors = ['#FFFFFF', '#EEEEEE']
         self.block_size = (800, 200)
 
-        if rep is not None or True:
+        if rep is not None:
             self.rep = rep
             self.init_ui()
 
     def init_ui(self):
         # self.resize(self.block_size[0], self.block_size[1])
 
-        self.PartyColor = QtWidgets.QLabel(self)
+        self.PartyColor = QtWidgets.QPushButton(self)
+        self.PartyColor.clicked.connect(self.edit)
         self.PartyColor.setGeometry(QtCore.QRect(0, 0, 40, self.block_size[1]))
         # self.PartyColor.setFrameShape(QtWidgets.QFrame.WinPanel)
         # self.PartyColor.setFrameShadow(QtWidgets.QFrame.Raised)
@@ -414,11 +451,57 @@ class RepView(QtWidgets.QWidget):
     def setRegionName(self, name):
         self.RegionLabel.setText(name)
 
+    def edit(self):
+        self.editor = CandEdit(self.rep)
+        self.editor.donebutton.clicked.connect(self.refresh)
 
     def resize(self, x, y):
         super(RepView, self).resize(x, y)
         self.block_size = x, y
         self.init_ui()
+
+    def refresh(self):
+        self.setName(self.rep.name)
+        self.setPartyName(self.rep.party.name)
+        self.setPartyColor(self.rep.party.color)
+        try:
+            self.setRegionName(self.rep.region.name)
+        except:
+            pass
+
+
+class NationElectionRunner():
+    def __init__(self, **kwargs):
+        self.election = e.NationElection(nation=kwargs.get('nation', e.Nation()))
+
+        self.vs_chooser = NationElectionRunner.VotingSystemChooser(self)
+        while not self.vs_chooser.done:
+            QtWidgets.QApplication.processEvents()
+            time.sleep(0.05)
+
+        class VotingSystemButton(QtWidgets.QPushButton):
+            def __init__(self, vs, widgetlist):
+                super(NationElectionRunner.VotingSystemButton, self).__init__(widgetlist)
+                self.setText(vs)
+                self.resize(500, 100)
+                self.clicked.connect(lambda: widgetlist.clicked(vs))
+
+        class VotingSystemChooser(WidgetList):
+            def __init__(self, parent_ui, election):
+                super(NationElectionRunner.VotingSystemChooser, self).__init__()
+                self.init_ui()
+                self.done = False
+                vs_names = list(election.candidatesystems.keys()) + list(election.partylistsystems.keys())
+                self.resize(500, 700)
+                buttons = []
+                for vs in vs_names:
+                    buttons.append(RegionElectionRunner.VotingSystemButton(vs, self))
+                    self.append(buttons[-1])
+
+            def clicked(self, vs):
+                self.vs = vs
+                self.done = True
+
 
 
 class RegionElectionRunner():
@@ -430,7 +513,6 @@ class RegionElectionRunner():
 
         self.vs = ""
         self.vs_chooser = RegionElectionRunner.VotingSystemChooser(self, self.election)
-        self.vs_chooser
         while not self.vs_chooser.done:
             QtWidgets.QApplication.processEvents()
             time.sleep(0.05)
@@ -513,11 +595,15 @@ class RegionElectionRunner():
         class CandButton(QtWidgets.QPushButton):
             def __init__(self, candidate):
                 super(RegionElectionRunner.ElectionOptions.CandButton, self).__init__()
-                self.hide()
                 self.candidate = candidate
                 self.edit = None
-                self.resize(300, 100)
-                self.setText(candidate.name)
+                self.resize(600, 100)
+
+                text = self.candidate.name + '\n(' + self.candidate.party.name + ')'
+                icon = ColorIcon(self.candidate.party.color)
+                self.setText(text)
+                self.setIcon(icon)
+
                 self.clicked.connect(self.editcand)
 
             def editcand(self):
@@ -525,26 +611,63 @@ class RegionElectionRunner():
                     self.edit.destroy()
                     self.edit = None
                 self.edit = CandEdit(self.candidate)
-                self.edit.donebutton.clicked.connect(lambda candidate=self.candidate: [
-                    self.edit.save(),
-                    self.setText(self.candidate.name)])
-                self.setText(self.candidate.name)
+                self.edit.donebutton.clicked.connect(self.refresh_button)
+
+
+            def refresh_button(self):
+                self.edit.save()
+                text = self.candidate.name + '\n(' + self.candidate.party.name + ')'
+                icon = ColorIcon(self.candidate.party.color)
+                self.setText(text)
+                self.setIcon(icon)
 
         class CandsList(WidgetList):
             def __init__(self, election):
                 super(RegionElectionRunner.ElectionOptions.CandsList, self).__init__()
-                self.outer_size = (320, 500)
+                self.outer_size = (650, 700)
                 self.init_ui()
                 self.election = election
-                self.addbutton = QtWidgets.QPushButton('Add Candidate')
-                self.addbutton.clicked.connect(self.addcand)
-                self.append(self.addbutton)
+                
+                self.add_cands_layout = QtWidgets.QHBoxLayout(self)
+                self.add_cands_button = QtWidgets.QPushButton('Add _ Candidates')
+                self.add_cands_button.clicked.connect(self.add_candidates)
+                self.add_cands_layout.addWidget(self.add_cands_button)
+                self.add_cands_spinner = QtWidgets.QSpinBox()
+                self.add_cands_spinner.setMinimum(1)
+                self.add_cands_spinner.setMaximum(10)
+                self.add_cands_layout.addWidget(self.add_cands_spinner)
+                self.add_cands_widget = QtWidgets.QWidget()
+                self.add_cands_widget.setLayout(self.add_cands_layout)
+                self.append(self.add_cands_widget)
 
-            def addcand(self):
-                candidate = e.Candidate(region=self.election.region)
-                self.election.candidates.append(candidate)
-                candbutton = RegionElectionRunner.ElectionOptions.CandButton(candidate)
-                self.append(candbutton)
+                self.add_party_cands_layout = QtWidgets.QHBoxLayout(self)
+                self.add_party_cands_button = QtWidgets.QPushButton('Add _ Candidates From each party')
+                self.add_party_cands_button.clicked.connect(self.add_party_candidates)
+                self.add_party_cands_layout.addWidget(self.add_party_cands_button)
+                self.add_party_cands_spinner = QtWidgets.QSpinBox()
+                self.add_party_cands_spinner.setMinimum(1)
+                self.add_party_cands_spinner.setMaximum(4)
+                self.add_party_cands_layout.addWidget(self.add_party_cands_spinner)
+                self.add_party_cands_widget = QtWidgets.QWidget()
+                self.add_party_cands_widget.setLayout(self.add_party_cands_layout)
+                self.append(self.add_party_cands_widget)
+
+
+            def add_candidates(self):
+                for i in range(self.add_cands_spinner.value()):
+                    candidate = e.Candidate(region=self.election.region)
+                    self.election.candidates.append(candidate)
+                    candbutton = RegionElectionRunner.ElectionOptions.CandButton(candidate)
+                    self.append(candbutton)
+
+
+            def add_party_candidates(self):
+                for party in self.election.region.parties():
+                    for i in range(self.add_party_cands_spinner.value()):
+                        candidate = e.Candidate(region=self.election.region, party=party)
+                        self.election.candidates.append(candidate)
+                        candbutton = RegionElectionRunner.ElectionOptions.CandButton(candidate)
+                        self.append(candbutton)
 
 
     class VotingSystemButton(QtWidgets.QPushButton):
@@ -574,11 +697,114 @@ class RegionElectionRunner():
 class NationViewer(QtWidgets.QWidget):
     map_width = 2000
     map_height = 2000
-    side_bar_width = 200
+    side_bar_width = 1000
 
     class SideBar(WidgetList):
-        def __init__(self):
-            pass
+        font = QtGui.QFont()
+        font.setFamily('Arial')
+        font.setPointSize(15)
+        class PartySeatsGraph(QtWidgets.QPushButton):
+            def __init__(self, nation):
+                super(NationViewer.SideBar.PartySeatsGraph, self).__init__()
+                self.resize(NationViewer.side_bar_width - 100, 200)
+                self.nation = nation
+
+
+            def paintEvent(self, e):
+                perc_by_party = self.nation.percentages_by_party()
+                width_by_party = {party: perc_by_party[party] * self.width()/100 for party in perc_by_party}
+
+                qp = QtGui.QPainter()
+                qp.begin(self)
+                c = 0
+                x = 0
+                if len(width_by_party.keys()) != 0:
+                    for party in width_by_party:
+                        color = QtGui.QColor(party.color)
+                        qp.setPen(color)
+
+                        qp.setBrush(color)
+                        qp.setPen(color)
+
+                        qp.setBrush(QtGui.QColor(color))
+                        width = width_by_party[party]
+                        qp.drawRect(round(x), 0, round(width), self.height())
+                        x += width
+
+
+                black_pen = QtGui.QPen()
+                black_pen.setColor(QtGui.QColor('#000000'))
+                black_pen.setWidth(int(self.width()/30))
+                qp.setPen(black_pen)
+                qp.setBrush(QtGui.QColor(0, 0, 0, 0))
+                qp.drawRect(0, 0, self.width(), self.height())
+                qp.end()
+
+
+        def __init__(self, parent):
+            super(NationViewer.SideBar, self).__init__(parent)
+
+            self.parent_ui = parent
+            self.outer_size = (parent.side_bar_width - 20, parent.map_height)
+            self.init_ui()
+
+            self.add_regions_layout = QtWidgets.QHBoxLayout()
+            self.add_regions_button = QtWidgets.QPushButton('Add Regions')
+            self.add_regions_button.resize(400, 200)
+            self.add_regions_button.setFont(NationViewer.SideBar.font)
+            self.add_regions_button.clicked.connect(self.add_regions)
+            self.add_regions_layout.addWidget(self.add_regions_button)
+            self.add_regions_spinner = QtWidgets.QSpinBox()
+            self.add_regions_spinner.setFont(NationViewer.SideBar.font)
+            self.add_regions_spinner.resize(200, 200)
+            self.add_regions_layout.addWidget(self.add_regions_spinner)
+            self.add_regions_spinner.setMinimum(1)
+            self.add_regions_spinner.setMaximum(30)
+            self.add_regions_widget = QtWidgets.QWidget(self)
+            self.add_regions_widget.setLayout(self.add_regions_layout)
+            self.append(self.add_regions_widget)
+
+            self.resize_layout = QtWidgets.QHBoxLayout()
+            self.resize_button = QtWidgets.QPushButton('Resize Map')
+            self.resize_button.resize(400, 200)
+            self.resize_button.setFont(NationViewer.SideBar.font)
+            self.resize_button.clicked.connect(self.resize_map)
+            self.resize_layout.addWidget(self.resize_button)
+            self.resize_spinner_0 = QtWidgets.QSpinBox()
+            self.resize_spinner_1 = QtWidgets.QSpinBox()
+            self.resize_spinner_0.resize(200, 200)
+            self.resize_spinner_1.resize(200, 200)
+            self.resize_spinner_0.setFont(NationViewer.SideBar.font)
+            self.resize_spinner_1.setFont(NationViewer.SideBar.font)
+            self.resize_spinner_0.setMinimum(1)
+            self.resize_spinner_1.setMinimum(1)
+            self.resize_spinner_0.setMaximum(20)
+            self.resize_spinner_1.setMaximum(20)
+            self.resize_layout.addWidget(self.resize_spinner_0)
+            self.resize_layout.addWidget(self.resize_spinner_1)
+            self.resize_widget = QtWidgets.QWidget(self)
+            self.resize_widget.setLayout(self.resize_layout)
+
+            self.append(self.resize_widget)
+
+            self.parties_list = PartiesList('edit', [], self.parent_ui.nation.parties, self.parent_ui.nation)
+            self.parties_list.setParent(self)
+            self.parties_list.resize(self.parent_ui.side_bar_width - 20, 500)
+            self.append(self.parties_list)
+
+            self.append(self.PartySeatsGraph(self.parent_ui.nation))
+
+            self.show()
+
+        def add_regions(self):
+            self.parent_ui.nation.create_regions(self.add_regions_spinner.value(), 1000)
+            self.parent_ui.map.refresh()
+
+        def resize_map(self):
+            x = self.resize_spinner_0.value()
+            y = self.resize_spinner_1.value()
+            self.parent_ui.nation.resize_map(x, y)
+            self.parent_ui.map.refresh()
 
     def __init__(self, nation=None):
         super(NationViewer, self).__init__()
@@ -586,16 +812,16 @@ class NationViewer(QtWidgets.QWidget):
             nation = e.Nation()
 
         self.nation = nation
-        self.map = NationMap(nation.region_map)
+        self.map = NationMap(nation)
         self.map.setParent(self)
         self.map.move(0, 0)
         self.map.setFixedSize(self.map_width, self.map_height)
 
         self.resize(self.map_width + self.side_bar_width, self.map_height)
-        self.add_region_button = QtWidgets.QPushButton(self)
-        self.add_region_button.setText('Add Region')
-        self.add_region_button.setGeometry(self.map_width, 0, self.side_bar_width, 100)
-        self.add_region_button.clicked.connect(self.add_region)
+
+        self.side_bar = self.SideBar(self)
+        self.side_bar.setGeometry(self.map_width, 0, self.side_bar_width, self.map_height)
+
 
         self.show()
 
@@ -610,92 +836,110 @@ class NationMap(QtWidgets.QScrollArea):
     width = 500
     height = 500
 
-    def __init__(self, region_map):
+    def __init__(self, nation):
         super(NationMap, self).__init__()
         self.layout = QtWidgets.QGridLayout()
         self.layout.setGeometry(QtCore.QRect(0, 0, self.width, self.height))
         self.layout.setSpacing(5)
+        self.region_map = nation.region_map
+        self.nation = nation
         self.buttons = []
-        self.region_map = region_map
-
-        self.refresh()
+        self.blank_spaces = []
 
         self.setLayout(self.layout)
-        self.show()
 
+        self.refresh()
+        self.show()
 
     def refresh(self):
         for button in self.buttons:
+            button.hide()
+            self.layout.removeWidget(button)
             button.destroy()
-        for (x, y) in self.region_map:
-            if self.region_map[(x, y)] is not None:
-                region = self.region_map[(x, y)]
-                self.buttons.append(NationMap.RegionButton(region, self))
-                self.layout.addWidget(self.buttons[-1], y, x)
+            del button
 
+        for x in range(self.nation.map_width):
+            for y in range(self.nation.map_height):
+                    button = self.RegionButton(x, y, self)
+                    self.layout.addWidget(button, y, x)
+                    self.buttons.append(button)
 
     class RegionButton(QtWidgets.QPushButton):
-        def __init__(self, region, ui):
+        def __init__(self, x, y, nationmap):
             super(NationMap.RegionButton, self).__init__()
             self.view = None
-            self.region = region
+            self.region = nationmap.nation.region_map[x][y]
+            self.nation = nationmap.nation
+            self.x, self.y = x, y
 
             policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-            policy.setHeightForWidth(True)
             self.setSizePolicy(policy)
 
-            name = region.name
-            name = name.replace(' ', '\n')
-            self.setText(name)
-
-            self.setMinimumSize(20, 20)
+            #self.setMinimumSize(20, 20)
 
             self.clicked.connect(self.view_region)
 
         def view_region(self):
-            self.regionviewer = RegionViewer(self.region)
+            if self.region is not None:
+                self.regionviewer = RegionViewer(self.region)
+            else:
+                self.nation.add_region(None, self.x, self.y)
+                self.region = self.nation.region_map[self.x][self.y]
+                self.regionviewer = RegionViewer(self.region)
 
         def paintEvent(self, e):
-            colors = [rep.party.color for rep in self.region.reps]
-            total_rects = len(colors)
-            color_count = dict(Counter(colors))
-
-            qp = QtGui.QPainter()
-            qp.begin(self)
-            c = 0
-            if total_rects != 0:
-                w = int(self.width() / total_rects)
-                for color in color_count.keys():
-                    col = QtGui.QColor(color)
-                    qp.setPen(col)
-
-                    qp.setBrush(col)
-                    qp.setPen(col)
-
-                    qp.setBrush(QtGui.QColor(col))
-                    qp.drawRect(c * w, 0, w * color_count[color], self.height())
-                    c += color_count[color]
-
-            text_pen = QtGui.QPen()
-            if total_rects == 0:
-                text_pen.setColor(QtGui.QColor('#000000'))
+            if self.region == None:
+                pass
             else:
-                text_pen.setColor(QtGui.QColor('#FFFFFF'))
-            text_font = QtGui.QFont('Arial Black', int(min(self.width(), self.height())/20))
-            qp.setFont(text_font)
-            qp.setPen(text_pen)
-            name = self.region.name
-            name = name.replace(' ', '\n')
-            self.setText(name)
-            qp.drawText(e.rect(), QtGui.Qt.AlignCenter, name)
+                colors = [rep.party.color for rep in self.region.reps]
+                total_rects = len(colors)
+                color_count = dict(Counter(colors))
 
-            black_pen = QtGui.QPen()
-            black_pen.setColor(QtGui.QColor('#000000'))
-            black_pen.setWidth(int(self.width()/10))
-            qp.setPen(black_pen)
-            qp.setBrush(QtGui.QColor(0, 0, 0, 0))
-            qp.drawRect(0, 0, self.width(), self.height())
-            qp.end()
+                qp = QtGui.QPainter()
+                qp.begin(self)
+                c = 0
+                if total_rects != 0:
+                    w = self.width() / total_rects
+                    for color in color_count.keys():
+                        col = QtGui.QColor(color)
+                        qp.setPen(col)
+
+                        qp.setBrush(col)
+                        qp.setPen(col)
+
+                        qp.setBrush(QtGui.QColor(col))
+                        qp.drawRect(int(round(c * w)), 0, int(round(w * color_count[color])), self.height())
+                        c += color_count[color]
+
+                text_pen = QtGui.QPen()
+                if total_rects == 0:
+                    text_pen.setColor(QtGui.QColor('#000000'))
+                else:
+                    text_pen.setColor(QtGui.QColor('#FFFFFF'))
+                text_font = QtGui.QFont('Arial Black', int(min(self.width(), self.height())/20))
+                qp.setFont(text_font)
+                qp.setPen(text_pen)
+                name = self.region.name
+                name = name.replace(' ', '\n')
+                self.setText(name)
+                qp.drawText(e.rect(), QtGui.Qt.AlignCenter, name)
+
+                black_pen = QtGui.QPen()
+                black_pen.setColor(QtGui.QColor('#000000'))
+                black_pen.setWidth(int(self.width()/30))
+                qp.setPen(black_pen)
+                qp.setBrush(QtGui.QColor(0, 0, 0, 0))
+                qp.drawRect(0, 0, self.width(), self.height())
+                qp.end()
+
+        def kill(self):
+            self.paintEvent = self.nothing
+            self.destroy()
+            self.region = None
+            del self
+
+        def nothing(self):
+            pass
 
     def do_resize(self, x, y):
         pass
@@ -817,7 +1061,11 @@ class RegionViewer(QtWidgets.QWidget):
             super(RegionViewer.ElectionList, self).init_ui()
             self.resize(RegionViewer.c1_width, RegionViewer.electionlist_height)
 
-            self.append(QtWidgets.QPushButton("Run Election"))
+            regional_election_button = QtWidgets.QPushButton(self)
+            regional_election_button.setText('Run a Regional Election')
+            regional_election_button.resize(600, 100)
+            regional_election_button.setFont(RegionViewer.font)
+            self.append(regional_election_button)
             self[-1].clicked.connect(self.add_election)
 
 
@@ -888,13 +1136,6 @@ class ElectionTable(QtWidgets.QTableWidget):
             self.setHorizontalHeaderItem(0, QtWidgets.QTableWidgetItem('Votes'))
             self.setHorizontalHeaderItem(1, QtWidgets.QTableWidgetItem('Percentages'))
 
-        
-
-
-
-
-
-
         # Go through each round and put the information into the table
         if election.voting_system in ['dhondt', 'webster']:
             for p in range(len(election.order)):
@@ -906,7 +1147,6 @@ class ElectionTable(QtWidgets.QTableWidget):
 
                 self.setVerticalHeaderItem(p, item)
 
-
             for r in range(len(election.rounds)):
                 this_round = election.rounds[r]
                 for p in range(len(election.order)):
@@ -917,7 +1157,6 @@ class ElectionTable(QtWidgets.QTableWidget):
                         item.setBackgroundColor(QtGui.QColor(self.winner_color))
                         item.setText(f'{str(this_round.votes[party])}\n({this_round.winners[0].name})')
                     self.setItem(p, r, item)
-
 
         elif election.voting_system in ['runoff', 'stv', 'borda', 'dowdall', 'fptp']:
             for c in range(len(election.order)):
@@ -968,13 +1207,16 @@ class ElectionTable(QtWidgets.QTableWidget):
 
 class Runn():
     def __init__(self):
-        self.n = e.Nation(map_width=6, map_height=6)
+        self.n = e.Nation(map_width=10, map_height=10)
 
-        self.n.add_regions([e.Region(population=random.randint(1000, 4000)) for i in range(30)])
-        [self.n.add_party(e.Party()) for i in range(6)]
-        self.n.set_seat_count(100)
-        self.ne = e.NationElection(nation=self.n)
-        self.ne.run('stv')
+        self.n.add_regions([e.Region(population=random.randint(100, 800)) for i in range(50)])
+
+        [self.n.add_party(e.Party(relevance=random.random()**0.5)) for i in range(5)]
+
+        self.n.set_seat_count(150)
+        for i in range(1):
+            self.ne = e.NationElection(nation=self.n)
+            self.ne.run('dhondt')
         self.map = NationViewer(self.n)
 
 
