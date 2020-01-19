@@ -4,7 +4,7 @@ import random
 
 class Options:
     def __init__(self):
-        self.window_size = (500, 500)
+        self.window_size = (900, 900)
         # ^ Window size
         #   (width / height)
         #   Pixels

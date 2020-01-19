@@ -1,1 +1,0 @@
-print(type(round(6.34332435)))

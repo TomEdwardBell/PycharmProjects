@@ -1,20 +1,21 @@
 from PySide2 import QtWidgets, QtGui, QtCore
 from sys import argv
 
+import time
 import random
 
 
 class Options:
     def __init__(self):
-        self.grid_size = (15, 15)
+        self.grid_size = (100, 100)
         # ^ Grid size
         #   (Width, Height)
 
-        self.window_size = (720, 720)
+        self.window_size = (1800, 1800)
         # ^ Window size
         #   Pixels
 
-        self.mine_count = 30
+        self.mine_count = 500
         # ^ Number of mines on the board
 
 
@@ -65,7 +66,6 @@ class MainGame:
         self.ui.widgets.flag_btn.clicked.connect(self.flag_switch)
 
     def clicked(self, coords, realclick):
-        print(coords)
         #time.sleep(0.05)
         x, y = coords
         ignore_realclick = False
@@ -73,12 +73,8 @@ class MainGame:
 
         if self.mouse_mode == "flag":
                 self.flag_click(coords)
-
-        elif self.mouse_mode == "nor[mal":
-            pass
-
         elif self.mouse_mode == "normal" and not self.ui.board[x, y].been_clicked:
-            #time.sleep(0.001)
+            time.sleep(0.005)
             ignore_realclick = True
             if self.ui.board[x, y].shown_value != "⚑":  # Makes sure it's not flagged. No accidental clicking!
                 ignore_realclick = False
@@ -132,6 +128,7 @@ class MainGame:
     def get_locals(self, coords):
         localcoords = []
         relative_locals = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]
+
         # These are the vectors of the nearest coordinates
 
         for i in relative_locals:
@@ -141,7 +138,8 @@ class MainGame:
             loc_y = coords[1] + rel_y
             if -1 not in [loc_x, loc_y] and loc_x < self.options.grid_size[0] and loc_y < self.options.grid_size[1]:
                 localcoords.append([loc_x, loc_y])
-        return(localcoords)
+
+        return localcoords
 
     def get_minecount(self, coords):
         localcoords = self.get_locals(coords)

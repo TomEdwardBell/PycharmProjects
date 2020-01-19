@@ -37,45 +37,45 @@ class Settlement:
         self._Households = []
         self._CreateHouseholds()
 
-    def GetNumberOfHouseholds(self):
-        return len(self._Households)
+def GetNumberOfHouseholds(self):
+    return len(self._Households)
 
-    def GetXSize(self):
-        return self._XSize
+def GetXSize(self):
+    return self._XSize
 
-    def GetYSize(self):
-        return self._YSize
+def GetYSize(self):
+    return self._YSize
 
-    def GetRandomLocation(self):
-        X = random.randint(0, self._XSize - 1)
-        Y = random.randint(0, self._YSize - 1)
-        return X, Y
+def GetRandomLocation(self):
+    X = random.randint(0, self._XSize - 1)
+    Y = random.randint(0, self._YSize - 1)
+    return X, Y
 
-    def _CreateHouseholds(self):
-        for Count in range (0, self._StartNoOfHouseholds):
-            self.AddHousehold()
+def _CreateHouseholds(self):
+    for Count in range (0, self._StartNoOfHouseholds):
+        self.AddHousehold()
 
-    def AddHousehold(self):
-        X, Y = self.GetRandomLocation()
-        Temp = Household(X, Y)
-        self._Households.append(Temp)
+def AddHousehold(self):
+    X, Y = self.GetRandomLocation()
+    Temp = Household(X, Y)
+    self._Households.append(Temp)
 
-    def DisplayHouseholds(self):
-        print("\n**********************************")
-        print("*** Details of all households: ***")
-        print("**********************************\n")
-        for H in self._Households:
-            print(H.GetDetails())
-        print()
+def DisplayHouseholds(self):
+    print("\n**********************************")
+    print("*** Details of all households: ***")
+    print("**********************************\n")
+    for H in self._Households:
+        print(H.GetDetails())
+    print()
 
-    def FindOutifHouseholdEatsOut(self, HouseholdNo):
-        EatOutRNo = random.random()
-        X = self._Households[HouseholdNo].GetX()
-        Y = self._Households[HouseholdNo].GetY()
-        if EatOutRNo < self._Households[HouseholdNo].GetChanceEatOut():
-            return True, X, Y
-        else:
-            return False, X, Y
+def FindOutifHouseholdEatsOut(self, HouseholdNo):
+    EatOutRNo = random.random()
+    X = self._Households[HouseholdNo].GetX()
+    Y = self._Households[HouseholdNo].GetY()
+    if EatOutRNo < self._Households[HouseholdNo].GetChanceEatOut():
+        return True, X, Y
+    else:
+        return False, X, Y
 
 class LargeSettlement(Settlement):
     def __init__(self, ExtraXSize, ExtraYSize, ExtraHouseholds):
@@ -392,7 +392,7 @@ class Simulation:
             if EventRanNo < 0.5:
                 self.__ProcessCostOfFuelChangeEvent()
             EventRanNo = random.random()
-            if EventRanNo < 0.5:
+            if EventRanNo < 0.5 :
                 self.__ProcessReputationChangeEvent()
             EventRanNo = random.random()
             if EventRanNo >= 0.5:

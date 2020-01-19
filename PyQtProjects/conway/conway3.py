@@ -3,11 +3,12 @@ from sys import argv
 from PySide2 import QtCore, QtGui, QtWidgets
 import time
 
+
 class Simulation(QtWidgets.QMainWindow):
     def __init__(self, width, height):
         super(Simulation, self).__init__()
         p = .5
-        self.board = [[(random.random() <= p) for h in range(height)] for w in range(width)]
+        self.actives = []
         self.die_list = []
         self.add_list = []
         print(self.board)
@@ -59,7 +60,6 @@ class Simulation(QtWidgets.QMainWindow):
             self.board[ax][ay] = True
 
 
-
     def paintEvent(self, e):
         qp = QtGui.QPainter()
         qp.begin(self)
@@ -75,9 +75,11 @@ class Simulation(QtWidgets.QMainWindow):
                     qp.drawRect(int(x*cw), int(y*ch), int(cw), int(ch))
         qp.end()
 
+
 class Run():
     def __init__(self):
         self.s = Simulation(40, 40)
+
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(argv)

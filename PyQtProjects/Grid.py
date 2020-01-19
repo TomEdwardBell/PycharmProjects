@@ -37,7 +37,7 @@ class Grid(QtWidgets.QMainWindow):
         self.window_size = Options.window_size
         self.grid_size = Options.grid_size
 
-        self.margin = (0, 0, 0, 0) # Top margin, Bottom margin, Left Margin, Right Margin
+        self.margin = (0, 0, 0, 0)  # Top margin, Bottom margin, Left Margin, Right Margin
         self.borders = (0, 0)
 
 

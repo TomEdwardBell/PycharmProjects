@@ -41,9 +41,9 @@ def party():
     nouns = ['Peace', 'Freedom', 'Democracy', 'Liberalism', 'Unity', 'Action', 'Hope', 'Socialism', 'Communism',
              'The Nation', 'The Country', 'The People', 'The Planet', 'Liberty', 'Welfare', 'Equality', 'Progress',
              'Change', 'Reform', 'Tradition', 'Science', 'Business', 'Justice', 'Respect', 'Law', 'Ecology',
-             'Revolution', 'Labour', 'Rights', 'The Future', 'Social Justice', 'Independence']
+             'Revolution', 'Labour', 'Rights', 'The Future', 'Social Justice', 'Independence', 'Renewal', 'Society']
 
-    people = ['Workers', 'Citizens', 'Democrats', 'Liberals', 'Fishermen', 'Farmers', 'Unionists', 'Nationalists',
+    people = ['Workers', 'Citizens', 'Democrats', 'Liberals', 'Fishermen', 'Unionists', 'Nationalists',
               'Students', 'Pensioners', 'Christians', 'Catholics', 'Protestants', 'Muslims', 'Farmers', 'Independents',
               'Republicans', 'Animals', 'Veterans', 'Miners', 'Voters', 'The Middle Class', 'The Working Class',
               'Socialists', 'Communists', 'Centrists', 'Royalists', 'Conservatives', 'Socialists', 'People']
@@ -87,10 +87,10 @@ def initials():
 
 def region():
     name = ''
-    locations = [' North', ' South', ' East', ' West', ' NE', ' NW', ' SE', ' SW', ' Central', ' Upper', ' Lower',
-                 ' Park', ' Valley', ' Green']
+    locations = ['North', 'South', 'East', 'West', 'NE', 'NW', 'SE', 'SW', 'Central', 'Upper', 'Lower',
+                 'Park', 'Valley', 'Green', 'New']
 
-    starts = ['Alder', 'Ash', 'Ban', 'Barn', 'Bath', 'Berken', 'Birris', 'Brent', 'Brom',  # As Bs
+    starts = ['Alder', 'Ash', 'Ban', 'Barn', 'Bath', 'Berken', 'Brent', 'Brom',  # As Bs
               'Charish', 'Cam', 'Car', 'Cal', 'Chel', 'Cope', 'Craw', 'Croy', 'Dews', 'Dud', 'Dor',  # Cs Ds
               'Eal', 'Eas', 'Edd', 'Ere', 'Exe', 'Fel', 'Fal', 'Fil', 'Folke',  # Es Fs
               'Gains', 'Gar', 'Grim', 'Guil', 'Green', 'Harr', 'Hack', 'Halt', 'Horn', 'Hen', 'Hex',  # Gs Hs
@@ -102,15 +102,18 @@ def region():
               ]
 
     suffixes = ['bridge', 'bury', 'by', 'cester', 'chester', 'cliffe', 'don', 'dif', 'erton', 'field', 'ford', 'ferry',
-                'ham', 'ick', 'ing', 'ington', 'itch', 'mouth', 'ney', 'pool', 'sea',
-                'shire', 'sley', 'ter', 'ton', 'wood', 'worth']
+                'grove', 'ham', 'ick', 'ing', 'ington', 'itch', 'mouth', 'ney', 'pool', 'sea', 'tonshire', 'rith',
+                'shire', 'sley', 'ter', 'ton', 'wood', 'worth', 'side', 'ring', 'neyshire', 'neyton', 'buryshire']
 
-    if prob(0.6):  # place name
+    if prob(0.5):  # place name
         name = random.choice(starts) + random.choice(suffixes)
-        if prob(0): #  place name + sub-location (e.g. North, NW, Valley)
-            name += random.choice(locations)
+        if prob(0.5):
+            name += ' ' + random.choice(locations)
+        else:
+            name = random.choice(locations) + ' ' + name
 
-    elif prob(0.8): # Two short location names with "and" between them
+
+    elif prob(0.5): # Two short location names with "and" between them
         name = random.choice(starts) + random.choice(suffixes) + ' and ' + random.choice(starts) + random.choice(suffixes)
 
     else: # place name, place name + place name
@@ -128,7 +131,6 @@ def nation():
     ends = ['ia', 'nia', 'lia', 'ya', 'bia',
             'istan', 'ain', 'ana', ' islands', 'land']
 
-
     if prob(0.3): name += vowel()
     for i in range(random.randint(1, 2)):
         name += const()
@@ -140,6 +142,10 @@ def nation():
 
     return name
 
+
 def prob(p):
     return random.random() < p
 
+
+def color():
+    return '#' + ''.join([random.choice('0123456789ABCDEF') for i in range(6)])
