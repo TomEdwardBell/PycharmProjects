@@ -7,7 +7,7 @@ import random
 
 class Options:
     def __init__(self):
-        self.grid_size = (100, 100)
+        self.grid_size = (20, 20)
         # ^ Grid size
         #   (Width, Height)
 
@@ -15,7 +15,7 @@ class Options:
         # ^ Window size
         #   Pixels
 
-        self.mine_count = 500
+        self.mine_count = 20
         # ^ Number of mines on the board
 
 
@@ -63,7 +63,7 @@ class MainGame:
             for y in range(self.options.grid_size[1]):
                 pos.append((x, y))
                 self.ui.board[x, y].clicked.connect(lambda x=x, y=y: self.clicked((x, y), True))
-        self.ui.widgets.flag_btn.clicked.connect(self.flag_switch)
+        self.ui.flag_btn.clicked.connect(self.flag_switch)
 
     def clicked(self, coords, realclick):
         #time.sleep(0.05)
@@ -74,7 +74,6 @@ class MainGame:
         if self.mouse_mode == "flag":
                 self.flag_click(coords)
         elif self.mouse_mode == "normal" and not self.ui.board[x, y].been_clicked:
-            time.sleep(0.005)
             ignore_realclick = True
             if self.ui.board[x, y].shown_value != "⚑":  # Makes sure it's not flagged. No accidental clicking!
                 ignore_realclick = False
@@ -100,7 +99,7 @@ class MainGame:
 
             if realclick and not ignore_realclick:
                 self.clicks += 1
-                self.ui.widgets.clicks_lbl.setText("Clicks: "+str(self.clicks))
+                self.ui.clicks_lbl.setText("Clicks: "+str(self.clicks))
 
         if realclick:
             self.checkwon()
@@ -118,12 +117,12 @@ class MainGame:
     def flag_switch(self):
         if self.mouse_mode == "normal":
             self.mouse_mode = "flag"
-            self.ui.widgets.flag_btn.setText("🏴󠁧󠁢󠁥󠁮󠁧󠁿")
-            self.ui.widgets.flag_btn.setStyleSheet("background-color: #5555DD ;font-size: 20pt; color: #FFFFFF")
+            self.ui.flag_btn.setText("🏴󠁧󠁢󠁥󠁮󠁧󠁿")
+            self.ui.flag_btn.setStyleSheet("background-color: #5555DD ;font-size: 20pt; color: #FFFFFF")
         elif self.mouse_mode == "flag":
             self.mouse_mode = "normal"
-            self.ui.widgets.flag_btn.setText("⛏")
-            self.ui.widgets.flag_btn.setStyleSheet("background-color: #333333 ;font-size: 20pt; color: #888888")
+            self.ui.flag_btn.setText("⛏")
+            self.ui.flag_btn.setStyleSheet("background-color: #333333 ;font-size: 20pt; color: #888888")
 
     def get_locals(self, coords):
         localcoords = []
@@ -187,20 +186,13 @@ class Grid(QtWidgets.QMainWindow):
         self.board = {}
         self.setStyle(QtWidgets.QStyleFactory.create('Windows'))
 
-
-        class Widgets:
-            pass
-
-        self.widgets = Widgets()
-
         self.init_ui()
-
 
 
     def init_ui(self):
         boardx = self.window_size[0]
         boardy = self.window_size[1]
-        margintop = 60
+        margintop = 120
         borderx = 0
         bordery = 0
         xcount = self.grid_size[0]
@@ -208,16 +200,16 @@ class Grid(QtWidgets.QMainWindow):
 
         self.setStyleSheet("background-color: #222222")
 
-        self.widgets.flag_btn = QtWidgets.QPushButton(self)
-        self.widgets.flag_btn.setText("⛏")
-        self.widgets.flag_btn.resize(60, 60)
-        self.widgets.flag_btn.setStyleSheet("background-color: #333333 ;font-size: 20pt; color: #888888")
+        self.flag_btn = QtWidgets.QPushButton(self)
+        self.flag_btn.setText("⛏")
+        self.flag_btn.resize(120, 120)
+        self.flag_btn.setStyleSheet("background-color: #333333 ;font-size: 35pt; color: #888888")
 
-        self.widgets.clicks_lbl = QtWidgets.QLabel(self)
-        self.widgets.clicks_lbl.setText("Clicks: 0")
-        self.widgets.clicks_lbl.move(200, 0)
-        self.widgets.clicks_lbl.resize(150, 60)
-        self.widgets.clicks_lbl.setStyleSheet("font-size: 20pt; color: #888888")
+        self.clicks_lbl = QtWidgets.QLabel(self)
+        self.clicks_lbl.setText("Clicks: 0")
+        self.clicks_lbl.move(200, 0)
+        self.clicks_lbl.resize(150, 60)
+        self.clicks_lbl.setStyleSheet("font-size: 20pt; color: #888888")
 
         self.resize((boardx + borderx * (xcount + 1)), (boardy + bordery * (ycount + 1)) + margintop)
         for x in range(xcount):

@@ -2,7 +2,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 from sys import argv
 import random
 import time
-from collections import Counter
+import electrioneering_uk_constituencies
 
 
 import electioneering as e
@@ -129,9 +129,8 @@ class WidgetList(QtWidgets.QScrollArea):
             # Remove widget from layout
             self.v_layout.removeWidget(widget)
 
-            self.inner_height -= widget.height()
             # Take away the widget's height from the inner height
-
+            self.inner_height -= widget.height()
             self.inner_scroll_widget.setFixedSize(self.width() - self.scroll_bar_width, self.inner_height)
 
             # Kill widget
@@ -250,11 +249,10 @@ class PartiesList(WidgetList):
         if self.region_type == 'region':
 
             widgets = self.widgets()
-            number_of_regional_parties = len(self.region.get_local_parties())
+            number_of_regional_parties = len(self.region.local_parties)
             for widget in widgets[-number_of_regional_parties:]:
                 # Regional buttons start from the bottom
                 # Removes the last x widgets where x = number of regional parties
-                print(widget)
                 self.remove_widget(widget)
             self.region.clear_parties()
 
@@ -470,11 +468,11 @@ class CandEdit(QtWidgets.QWidget):
 
     def select_party(self):
         if self.candidate.region.nation is not None:
-            locals = self.candidate.region.get_local_parties()
+            locals = self.candidate.region.local_parties
             nationals = self.candidate.region.nation.parties
             partylist = PartiesList('select', locals, nationals)
         else:
-            locals = self.candidate.region.get_local_parties()
+            locals = self.candidate.region.local_parties
             partylist = PartiesList('select', locals, [])
         while not partylist.selected_party:
             time.sleep(0.05)
@@ -539,7 +537,7 @@ class RepView(QtWidgets.QWidget):
         self.setPartyName(self.representative.party.name)
         self.setPartyColor(self.representative.party.color)
         if self.representative.has_region():
-            self.setRegionName(self.representative.region.get_name())
+            self.setRegionName(self.representative.region.name)
         else:
             self.setRegionName('No Region')
 
@@ -705,7 +703,7 @@ class RegionElectionRunner():
 
         def loadpartieslist(self):
             if self.region.nation is not None:
-                locals = self.region.get_local_parties()
+                locals = self.region.local_parties
                 nationals = self.region.nation.parties
                 self.partieslist = PartiesList('edit', locals, nationals, self.region)
             else:
@@ -800,6 +798,7 @@ class NationViewer(QtWidgets.QMainWindow):
         font = QtGui.QFont()
         font.setFamily('Arial')
         font.setPointSize(15)
+
         class PartySeatsGraph(QtWidgets.QPushButton):
             def __init__(self, nation):
                 super(NationViewer.SideBar.PartySeatsGraph, self).__init__()
@@ -808,11 +807,18 @@ class NationViewer(QtWidgets.QMainWindow):
 
             def paintEvent(self, e):
                 perc_by_party = self.nation.percentages_by_party()
+                seats_by_party = self.nation.representatives_by_party()
                 width_by_party = {party: perc_by_party[party] * self.width()/100 for party in perc_by_party}
 
                 qp = QtGui.QPainter()
                 qp.begin(self)
                 x = 0
+
+                black_pen = QtGui.QPen()
+                black_pen.setColor(QtGui.QColor('#000000'))
+                black_pen.setWidth(int(self.width() / 45))
+
+                qp.setFont(QtGui.QFont('Arial', 20, 20))
                 if len(width_by_party.keys()) != 0:
                     for party in width_by_party:
                         color = QtGui.QColor(party.color)
@@ -824,12 +830,20 @@ class NationViewer(QtWidgets.QMainWindow):
                         qp.setBrush(QtGui.QColor(color))
                         width = width_by_party[party]
                         qp.drawRect(round(x), 0, round(width), self.height())
+
+                        if perc_by_party[party] > 10:
+                            qp.setPen(black_pen)
+                            qp.setBrush(QtGui.QColor(0, 0, 0, 0))
+
+                            qp.drawText(round(x), 30, round(width), self.height(), 60, party.initials())
+                            qp.drawText(round(x), 90, round(width), self.height(), 60, str(seats_by_party[party]))
+
                         x += width
 
 
-                black_pen = QtGui.QPen()
-                black_pen.setColor(QtGui.QColor('#000000'))
-                black_pen.setWidth(int(self.width()/30))
+
+
+
                 qp.setPen(black_pen)
                 qp.setBrush(QtGui.QColor(0, 0, 0, 0))
                 qp.drawRect(0, 0, self.width(), self.height())
@@ -880,7 +894,7 @@ class NationViewer(QtWidgets.QMainWindow):
             self.seat_count_spinner = QtWidgets.QSpinBox()
             self.seat_count_spinner.setValue(self.parent_ui.nation.total_seat_count())
             self.seat_count_spinner.setMinimum(1)
-            self.seat_count_spinner.setMaximum(999)
+            self.seat_count_spinner.setMaximum(9999)
             self.seat_count_spinner.resize(200, 200)
             self.seat_count_spinner.setFont(NationViewer.SideBar.font)
             self.seat_count_layout.addWidget(self.seat_count_spinner)
@@ -930,7 +944,7 @@ class NationViewer(QtWidgets.QMainWindow):
             self.add_widget(self.nation_election_button)
 
             self.reps_list = RepsList(self)
-            self.reps_list.resize(self.parent_ui.side_bar_width - 20, 500)
+            self.reps_list.resize(self.parent_ui.side_bar_width - 10, 650)
             self.reps_list.set_reps(self.parent_ui.nation.representatives())
             self.add_widget(self.reps_list)
 
@@ -985,7 +999,7 @@ class NationViewer(QtWidgets.QMainWindow):
         self.side_bar.reps_list.set_reps(self.nation.representatives())
 
 
-class NationMap(QtWidgets.QScrollArea):
+class NationMap(QtWidgets.QWidget):
     width = 500
     height = 500
 
@@ -1052,10 +1066,15 @@ class NationMap(QtWidgets.QScrollArea):
                 qp.setPen(col)
                 qp.drawEllipse(QtCore.QPoint(cx, cy), 10, 10)
             else:
-                colors = [representative.party.color for representative in self.region.get_representatives()]
-                total_rects = len(colors)
-                color_count = dict(Counter(colors))
+                color_count = {}
+                for representative in self.region.representatives:
+                    c = representative.party.color
+                    if c in color_count:
+                        color_count[c] += 1
+                    else:
+                        color_count[c] = 1
 
+                total_rects = len(color_count.keys())
                 qp = QtGui.QPainter()
                 qp.begin(self)
                 c = 0
@@ -1081,7 +1100,7 @@ class NationMap(QtWidgets.QScrollArea):
                     text_font = QtGui.QFont('Arial Black', int(min(self.width(), self.height())/20))
                     qp.setFont(text_font)
                     qp.setPen(text_pen)
-                    name = self.region.get_name()
+                    name = self.region.name
                     name = name.replace(' ', '\n')
                     self.setText(name)
                     qp.drawText(e.rect(), QtGui.Qt.AlignCenter, name)
@@ -1122,10 +1141,10 @@ class RegionViewer(QtWidgets.QWidget):
             super(RegionViewer.BasicInfo, self).__init__(ui)
             self.region = region
 
-            name = region.get_name()
+            name = region.name
             pop = region.population()
-            bias = region.get_bias()
-            seat_count = region.get_seat_count()
+            leaning = region.leaning
+            seat_count = region.seat_count
 
             self.name_label = QtWidgets.QLabel()
             self.name_label.setText("Name")
@@ -1147,33 +1166,34 @@ class RegionViewer(QtWidgets.QWidget):
             self.pop_edit.setFont(RegionViewer.font)
             self.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.pop_edit)
 
-            self.bias_label = QtWidgets.QLabel()
-            self.bias_label.setText("Bias")
-            self.bias_label.setFont(RegionViewer.font)
-            self.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.bias_label)
+            self.leaning_label = QtWidgets.QLabel()
+            self.leaning_label.setText("Bias")
+            self.leaning_label.setFont(RegionViewer.font)
+            self.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.leaning_label)
 
-            self.biaslayout = QtWidgets.QHBoxLayout()
-            self.biasedit0 = QtWidgets.QDoubleSpinBox()
-            self.biasedit0.setMinimum(-5)
-            self.biasedit0.setMaximum(5)
-            self.biasedit0.setDecimals(3)
-            self.biasedit0.setValue(bias[0])
-            self.biasedit0.setFont(RegionViewer.font)
-            self.biaslayout.addWidget(self.biasedit0)
-            self.biasedit1 = QtWidgets.QDoubleSpinBox()
-            self.biasedit1.setMinimum(-5)
-            self.biasedit1.setMaximum(5)
-            self.biasedit1.setDecimals(3)
-            self.biasedit1.setValue(bias[1])
-            self.biasedit1.setFont(RegionViewer.font)
-            self.biaslayout.addWidget(self.biasedit1)
-            self.setLayout(2, QtWidgets.QFormLayout.FieldRole, self.biaslayout)
+            self.leaninglayout = QtWidgets.QHBoxLayout()
+            self.leaningedit0 = QtWidgets.QDoubleSpinBox()
+            self.leaningedit0.setMinimum(-5)
+            self.leaningedit0.setMaximum(5)
+            self.leaningedit0.setDecimals(3)
+            self.leaningedit0.setValue(leaning[0])
+            self.leaningedit0.setFont(RegionViewer.font)
+            self.leaninglayout.addWidget(self.leaningedit0)
+            self.leaningedit1 = QtWidgets.QDoubleSpinBox()
+            self.leaningedit1.setMinimum(-5)
+            self.leaningedit1.setMaximum(5)
+            self.leaningedit1.setDecimals(3)
+            self.leaningedit1.setValue(leaning[1])
+            self.leaningedit1.setFont(RegionViewer.font)
+            self.leaninglayout.addWidget(self.leaningedit1)
+            self.setLayout(2, QtWidgets.QFormLayout.FieldRole, self.leaninglayout)
 
             self.seat_number_label = QtWidgets.QLabel('Seat Number')
             self.seat_number_label.setFont(RegionViewer.font)
             self.setWidget(3, QtWidgets.QFormLayout.LabelRole, self.seat_number_label)
             self.seat_number_edit = QtWidgets.QSpinBox()
             self.seat_number_edit.setMinimum(1)
+            self.seat_number_edit.setMaximum(99)
             self.seat_number_edit.setValue(seat_count)
             self.seat_number_edit.setFont(RegionViewer.font)
             self.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.seat_number_edit)
@@ -1196,18 +1216,18 @@ class RegionViewer(QtWidgets.QWidget):
 
         def editparties(self):
             if self.region.nation is None:
-                locals = self.candidate.region.get_local_parties()
+                locals = self.candidate.region.local_parties
                 self.partieslist = PartiesList('edit', locals, [], self.region)
             else:
-                locals = self.region.get_local_parties()
+                locals = self.region.local_parties
                 nationals = self.region.nation.parties
                 self.partieslist = PartiesList('edit', locals, nationals, self.region)
 
         def save_info(self):
-            self.region.set_name(self.name_edit.text())
-            self.region.set_bias((self.biasedit0.value(), self.biasedit1.value()))
+            self.region.name = self.name_edit.text()
+            self.region.leaning = (self.leaningedit0.value(), self.leaningedit1.value())
             self.region.set_population(self.pop_edit.value())
-            self.region.set_seat_count(self.seat_number_edit.value())
+            self.region.seat_count = self.seat_number_edit.value()
 
 
     class ElectionButton(QtWidgets.QPushButton):
@@ -1240,7 +1260,7 @@ class RegionViewer(QtWidgets.QWidget):
             self.add_widget(regional_election_button)
             self.widgets()[-1].clicked.connect(self.add_election)
 
-            elections = self.region.get_regional_elections()
+            elections = self.region.elections
             for e in range(len(elections)):
                 self.add_widget(RegionViewer.ElectionButton(elections[e], e, self))
 
@@ -1269,7 +1289,7 @@ class RegionViewer(QtWidgets.QWidget):
         self.electionlist.resize(self.c1_width, self.electionlist_height)
 
         self.repslist = RepsList(self)
-        self.repslist.set_reps(self.region.get_representatives())
+        self.repslist.set_reps(self.region.representatives)
         self.repslist.move(self.c1_width, 0)
         self.repslist.resize(self.c2_width, self.replist_height)
 
@@ -1279,7 +1299,7 @@ class RegionViewer(QtWidgets.QWidget):
         self.show()
 
     def reload_repslist(self):
-        self.repslist.set_reps(self.region.get_representatives())
+        self.repslist.set_reps(self.region.representatives)
 
 
 class ElectionTable(QtWidgets.QTableWidget):
@@ -1303,7 +1323,6 @@ class ElectionTable(QtWidgets.QTableWidget):
             self.setColumnCount(2)
             self.setRowCount(len(election.candidates))
             self.setHorizontalHeaderItem(0, QtWidgets.QTableWidgetItem('Votes'))
-            self.setHorizontalHeaderItem(1, QtWidgets.QTableWidgetItem('Percentages'))
 
         # Go through each round and put the information into the table
         if election.voting_system in ['dhondt', 'webster']:
@@ -1375,15 +1394,14 @@ class ElectionTable(QtWidgets.QTableWidget):
         self.show()
 
 
-class Runn():
+class Run():
     def __init__(self):
         self.n = e.Nation()
-        self.n.resize_map(4, 4)
         self.nv = NationViewer(self.n)
 
 def main():
     app = QtWidgets.QApplication(argv)
-    t = Runn()
+    t = Run()
     app.exec_()
 
 

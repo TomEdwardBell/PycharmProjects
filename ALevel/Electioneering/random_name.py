@@ -16,26 +16,6 @@ def last():
     name = random.choice(lasts)
     return name
 
-def vowel():
-    return random.choice([
-        'a', 'e', 'i', 'o', 'u',
-        'ai', 'ao', 'au',
-        'ei', 'eu', 'ee',
-        'ia', 'ie', 'io', 'iu',
-        'oa', 'oi', 'ou',
-        'ui'
-    ])
-
-def const():
-    consts = [
-        'b'*4, 'c'*3, 'ch'*3, 'd'*5, 'f'*3, 'g'*3,
-        'h', 'j', 'k'*2, 'l'*3, 'm'*3, 'n'*4,
-        'p'*3, 'ph', 'qu', 'r'*2, 's'*5, 'sh'*2,
-        't'*5, 'th'*2, 'v', 'w', 'x', 'z'
-    ]
-    consts = ''.join(consts)
-    consts = list(consts)
-    return random.choice(consts)
 
 def party():
     nouns = ['Peace', 'Freedom', 'Democracy', 'Liberalism', 'Unity', 'Action', 'Hope', 'Socialism', 'Communism',
@@ -44,12 +24,12 @@ def party():
              'Revolution', 'Labour', 'Rights', 'The Future', 'Social Justice', 'Independence', 'Renewal', 'Society']
 
     people = ['Workers', 'Citizens', 'Democrats', 'Liberals', 'Fishermen', 'Unionists', 'Nationalists',
-              'Students', 'Pensioners', 'Christians', 'Catholics', 'Protestants', 'Muslims', 'Farmers', 'Independents',
+              'Students', 'Pensioners', 'Christians', 'Catholics', 'Protestants', 'Farmers', 'Independents',
               'Republicans', 'Animals', 'Veterans', 'Miners', 'Voters', 'The Middle Class', 'The Working Class',
               'Socialists', 'Communists', 'Centrists', 'Royalists', 'Conservatives', 'Socialists', 'People']
 
     adjectives = ['Socialist', 'Communist', 'Republican', 'Democratic', 'United', 'Humanist', 'Pirate',
-                  'Revolutionary', 'Libertarian', 'Christian', 'Muslim', 'Conservative', 'Liberal', 'Progressive',
+                  'Revolutionary', 'Libertarian', 'Christian', 'Conservative', 'Liberal', 'Progressive',
                   'Independent', 'Popular', 'National', 'Federal', 'Populist', 'Patriotic',
                   'Rural', 'Urban', 'Environmental', 'Green', 'Secular']
 
@@ -103,7 +83,7 @@ def region():
 
     suffixes = ['bridge', 'bury', 'by', 'cester', 'chester', 'cliffe', 'don', 'dif', 'erton', 'field', 'ford', 'ferry',
                 'grove', 'ham', 'ick', 'ing', 'ington', 'itch', 'mouth', 'ney', 'pool', 'sea', 'tonshire', 'rith',
-                'shire', 'sley', 'ter', 'ton', 'wood', 'worth', 'side', 'ring', 'neyshire', 'neyton', 'buryshire']
+                'shire', 'sley', 'ter', 'ton', 'wood', 'worth', 'side', 'ring', 'neyshire', 'neyton', 'buryshire', 'ness']
 
     if prob(0.5):  # place name
         name = random.choice(starts) + random.choice(suffixes)
@@ -122,30 +102,10 @@ def region():
                random.choice(starts) + random.choice(suffixes)
 
     return name
-
-
-def nation():
-    name = ""
-    start = ['The Republic Of ', 'The United States Of ', 'The Republic Of ',
-             'New ', 'North ', 'South ', 'East ', 'West ']
-    ends = ['ia', 'nia', 'lia', 'ya', 'bia',
-            'istan', 'ain', 'ana', ' islands', 'land']
-
-    if prob(0.3): name += vowel()
-    for i in range(random.randint(1, 2)):
-        name += const()
-        name += vowel()
-    if prob(0.5): name += const()
-    name = name.capitalize()
-    if prob(0.4): name = random.choice(start) + name
-    if prob(0.6): name += random.choice(ends)
-
     return name
-
-
-def prob(p):
-    return random.random() < p
-
 
 def color():
     return '#' + ''.join([random.choice('0123456789ABCDEF') for i in range(6)])
+
+def prob(p):
+    return random.random() < p
