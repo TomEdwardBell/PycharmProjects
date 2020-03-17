@@ -102,7 +102,6 @@ def region():
                random.choice(starts) + random.choice(suffixes)
 
     return name
-    return name
 
 def color():
     return '#' + ''.join([random.choice('0123456789ABCDEF') for i in range(6)])

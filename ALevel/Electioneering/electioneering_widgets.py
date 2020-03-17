@@ -607,15 +607,8 @@ class NationElectionRunner():
             QtWidgets.QApplication.processEvents()
             time.sleep(0.02)
 
-        if self.vs_chooser.choice == 'mmp':
-            self.election.run(self.vs_chooser.choice)
-        else:
-            self.election.run(self.vs_chooser.choice)
+        self.election.run(self.vs_chooser.choice)
         self.vs_chooser.destroy()
-
-    class MMPOptions():
-        def __init__(self):
-            pass
 
 
 class RegionElectionRunner():
@@ -949,6 +942,7 @@ class NationViewer(QtWidgets.QMainWindow):
             self.add_widget(self.reps_list)
 
             self.show()
+            self.activateWindow()
 
         def add_regions(self):
             self.parent_ui.nation.create_regions(self.add_regions_spinner.value())
@@ -1066,34 +1060,25 @@ class NationMap(QtWidgets.QWidget):
                 qp.setPen(col)
                 qp.drawEllipse(QtCore.QPoint(cx, cy), 10, 10)
             else:
-                color_count = {}
-                for representative in self.region.representatives:
-                    c = representative.party.color
-                    if c in color_count:
-                        color_count[c] += 1
-                    else:
-                        color_count[c] = 1
 
-                total_rects = len(color_count.keys())
+                reps = sorted(self.region.representatives, key=lambda rep: rep.party.name)
                 qp = QtGui.QPainter()
                 qp.begin(self)
                 c = 0
-                if total_rects != 0:
-                    w = self.width() / total_rects
-                    for color in color_count.keys():
-                        col = QtGui.QColor(color)
-                        qp.setPen(col)
 
-                        qp.setBrush(col)
-                        qp.setPen(col)
+                if len(reps) != 0:
+                    w = self.width() / len(reps)
+                    for r in range(len(reps)):
+                        rep = reps[r]
+                        color = QtGui.QColor(rep.party.color)
+                        qp.setPen(QtGui.QPen(color))
+                        qp.setBrush(color)
+                        qp.drawRect(int(r * w), 0, w, self.height())
 
-                        qp.setBrush(QtGui.QColor(col))
-                        qp.drawRect(int(round(c * w)), 0, int(round(w * color_count[color])), self.height())
-                        c += color_count[color]
 
                 if self.width() > 95:
                     text_pen = QtGui.QPen()
-                    if total_rects == 0:
+                    if len(reps) == 0:
                         text_pen.setColor(QtGui.QColor('#000000'))
                     else:
                         text_pen.setColor(QtGui.QColor('#FFFFFF'))
@@ -1225,10 +1210,9 @@ class RegionViewer(QtWidgets.QWidget):
 
         def save_info(self):
             self.region.name = self.name_edit.text()
-            self.region.leaning = (self.leaningedit0.value(), self.leaningedit1.value())
+            self.region.set_leaning((self.leaningedit0.value(), self.leaningedit1.value()))
             self.region.set_population(self.pop_edit.value())
             self.region.seat_count = self.seat_number_edit.value()
-
 
     class ElectionButton(QtWidgets.QPushButton):
         def __init__(self, election, num, ui):
@@ -1242,7 +1226,6 @@ class RegionViewer(QtWidgets.QWidget):
 
         def showtable(self):
             self.table = ElectionTable(self.election)
-
 
     class ElectionList(WidgetList):
         def __init__(self, region, ui):
@@ -1320,7 +1303,7 @@ class ElectionTable(QtWidgets.QTableWidget):
 
 
         elif election.voting_system in ['borda', 'dowdall', 'fptp']:
-            self.setColumnCount(2)
+            self.setColumnCount(1)
             self.setRowCount(len(election.candidates))
             self.setHorizontalHeaderItem(0, QtWidgets.QTableWidgetItem('Votes'))
 
@@ -1397,7 +1380,13 @@ class ElectionTable(QtWidgets.QTableWidget):
 class Run():
     def __init__(self):
         self.n = e.Nation()
+        self.n.resize_map(50, 50)
+
+        for i in range(10000):
+            self.n.add_region(e.Region(population=10, seat_count=3))
+
         self.nv = NationViewer(self.n)
+
 
 def main():
     app = QtWidgets.QApplication(argv)
